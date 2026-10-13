@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    background-color: #0c0f17;
+    color: #e2e8f0;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+/* Holographic foil sheen effect */
+.holo-foil {
+  position: relative;
+  overflow: hidden;
+}
+
+.holo-foil::after {
+  content: '';
+  position: absolute;
+  inset: -100%;
+  background: linear-gradient(
+    115deg,
+    transparent 20%,
+    rgba(255, 0, 150, 0.25) 35%,
+    rgba(0, 220, 255, 0.35) 50%,
+    rgba(255, 230, 0, 0.3) 65%,
+    transparent 80%
+  );
+  mix-blend-mode: color-dodge;
+  opacity: 0.65;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  animation: holoShift 6s linear infinite;
+}
+
+@keyframes holoShift {
+  0% {
+    transform: translate(-30%, -30%) rotate(0deg);
+  }
+  50% {
+    transform: translate(15%, 15%) rotate(180deg);
+  }
+  100% {
+    transform: translate(-30%, -30%) rotate(360deg);
+  }
+}
+
+/* Card pocket sleeve gloss */
+.pocket-sleeve {
+  position: relative;
+}
+
+.pocket-sleeve::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 45%;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 255, 255, 0.01) 100%
+  );
+  pointer-events: none;
+  border-radius: inherit;
+  z-index: 2;
+}
+
+/* Binder page texture */
+.binder-page-texture {
+  background-color: #111520;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 0);
+  background-size: 16px 16px;
+}

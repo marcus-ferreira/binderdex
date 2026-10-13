@@ -1,0 +1,6 @@
+{
+  "name": "Fichário TCG - Coleções Virtuais",
+  "description": "Catalogador e fichário virtual interativo para coleções de Magic: The Gathering, Pokémon e Yu-Gi-Oh! com visual realista de 9 bolsos.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
