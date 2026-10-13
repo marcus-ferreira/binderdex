@@ -23,7 +23,26 @@ export const BinderListView: React.FC<BinderListViewProps> = ({
   );
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8 w-full">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full space-y-6">
+      {/* Page Title & Actions */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-black text-white tracking-tight flex items-center gap-2.5">
+            <Book className="w-6 h-6 text-indigo-400" />
+            <span>Fichários</span>
+          </h1>
+        </div>
+
+        <button
+          type="button"
+          onClick={onOpenNewBinderModal}
+          className="flex items-center gap-2 px-4 py-2.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 rounded-xl shadow-lg shadow-indigo-600/20 transition-all cursor-pointer whitespace-nowrap shrink-0"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Novo Fichário</span>
+        </button>
+      </div>
+
       {/* Binder Bookshelf Grid */}
       {filteredBinders.length > 0 ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
@@ -41,9 +60,9 @@ export const BinderListView: React.FC<BinderListViewProps> = ({
                 {/* Clean Portfolio Binder Cover */}
                 <div className="relative aspect-[3/4] w-full rounded-2xl bg-[#141824] border border-slate-700/80 shadow-xl group-hover:border-slate-500 group-hover:shadow-indigo-950/40 transition-colors overflow-hidden">
                   {/* Cover Artwork */}
-                  {binder.coverImageUrl ? (
+                  {Boolean(binder.coverImageUrl?.trim()) ? (
                     <img
-                      src={binder.coverImageUrl}
+                      src={binder.coverImageUrl!.trim()}
                       alt={binder.title}
                       className="w-full h-full object-cover object-center"
                       referrerPolicy="no-referrer"

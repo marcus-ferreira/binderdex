@@ -1,18 +1,25 @@
 import React, { useRef } from 'react';
 import { Download, Upload } from 'lucide-react';
-import { Binder } from '../types/binder';
+import { Binder, LooseCard, Deck } from '../types/binder';
 import { exportBindersJson, importBindersJson } from '../utils/storage';
 
 interface FooterProps {
   binders: Binder[];
-  onImportSuccess: (binders: Binder[]) => void;
+  looseCards?: LooseCard[];
+  decks?: Deck[];
+  onImportSuccess: (data: { binders: Binder[]; looseCards?: LooseCard[]; decks?: Deck[] }) => void;
 }
 
-export const Footer: React.FC<FooterProps> = ({ binders, onImportSuccess }) => {
+export const Footer: React.FC<FooterProps> = ({
+  binders,
+  looseCards = [],
+  decks = [],
+  onImportSuccess,
+}) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleExport = () => {
-    exportBindersJson(binders);
+    exportBindersJson(binders, looseCards, decks);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -23,12 +30,12 @@ export const Footer: React.FC<FooterProps> = ({ binders, onImportSuccess }) => {
     reader.onload = (event) => {
       try {
         const text = event.target?.result as string;
-        const importedBinders = importBindersJson(text);
+        const importedData = importBindersJson(text);
 
         // Merge binders by ID or append
         const existingIds = new Set(binders.map((b) => b.id));
         const mergedBinders = [...binders];
-        importedBinders.forEach((b) => {
+        importedData.binders.forEach((b) => {
           if (existingIds.has(b.id)) {
             const idx = mergedBinders.findIndex((m) => m.id === b.id);
             mergedBinders[idx] = b;
@@ -37,7 +44,11 @@ export const Footer: React.FC<FooterProps> = ({ binders, onImportSuccess }) => {
           }
         });
 
-        onImportSuccess(mergedBinders);
+        onImportSuccess({
+          binders: mergedBinders,
+          looseCards: importedData.looseCards,
+          decks: importedData.decks,
+        });
       } catch (err: unknown) {
         console.error('Falha ao importar backup JSON:', err);
       }

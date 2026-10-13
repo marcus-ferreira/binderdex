@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Sparkles, Trash2 } from 'lucide-react';
+import { Plus, Sparkles, Trash2, Copy } from 'lucide-react';
 import { BinderCard } from '../types/binder';
 
 interface BinderCardPocketProps {
   slotIndex: number;
   displayNumber: number;
   card?: BinderCard;
+  cloneMode?: boolean;
   onAddCard: (slotIndex: number) => void;
   onViewCard: (card: BinderCard, slotIndex: number) => void;
-  onDropCard: (sourceIndex: number, targetIndex: number) => void;
+  onDropCard: (sourceIndex: number, targetIndex: number, isCloneIntent?: boolean) => void;
   onDeleteCard?: (slotIndex: number) => void;
   onDragStartCard?: (slotIndex: number) => void;
   onDragEndCard?: () => void;
@@ -18,6 +19,7 @@ export const BinderCardPocket: React.FC<BinderCardPocketProps> = ({
   slotIndex,
   displayNumber,
   card,
+  cloneMode = false,
   onAddCard,
   onViewCard,
   onDropCard,
@@ -67,7 +69,8 @@ export const BinderCardPocket: React.FC<BinderCardPocketProps> = ({
     if (sourceIndexStr !== '') {
       const sourceIndex = parseInt(sourceIndexStr, 10);
       if (!isNaN(sourceIndex) && sourceIndex !== slotIndex) {
-        onDropCard(sourceIndex, slotIndex);
+        const isCloneIntent = Boolean(cloneMode || e.altKey || e.ctrlKey || e.metaKey);
+        onDropCard(sourceIndex, slotIndex, isCloneIntent);
       }
     }
   };
@@ -81,7 +84,9 @@ export const BinderCardPocket: React.FC<BinderCardPocketProps> = ({
       onDrop={handleDrop}
       className={`relative aspect-[5/7] w-full rounded-md transition-all duration-200 select-none ${
         isDragOver
-          ? 'ring-2 ring-indigo-400 ring-offset-2 ring-offset-slate-900 scale-[1.02]'
+          ? cloneMode
+            ? 'ring-2 ring-purple-400 ring-offset-2 ring-offset-slate-900 scale-[1.02]'
+            : 'ring-2 ring-indigo-400 ring-offset-2 ring-offset-slate-900 scale-[1.02]'
           : ''
       }`}
     >
@@ -102,9 +107,9 @@ export const BinderCardPocket: React.FC<BinderCardPocketProps> = ({
             }`}
             title="Clique para ver detalhes, trocar ou excluir carta"
           >
-            {(imgSrc || card.imageUrl) && !imageError ? (
+            {Boolean((imgSrc || card.imageUrl)?.trim()) && !imageError ? (
               <img
-                src={imgSrc || card.imageUrl}
+                src={(imgSrc || card.imageUrl).trim()}
                 alt={card.name}
                 onError={handleImageError}
                 className="w-full h-full object-cover object-center pointer-events-none transition-transform duration-300 group-hover:scale-105"
@@ -172,15 +177,39 @@ export const BinderCardPocket: React.FC<BinderCardPocketProps> = ({
           <button
             type="button"
             onClick={() => onAddCard(slotIndex)}
-            className="w-full h-full rounded-[3px] border border-dashed border-slate-700/70 hover:border-indigo-400/80 bg-slate-900/40 hover:bg-slate-800/60 flex flex-col items-center justify-center text-slate-500 hover:text-slate-200 transition-all cursor-pointer group/btn"
+            className={`w-full h-full rounded-[3px] border border-dashed flex flex-col items-center justify-center transition-all cursor-pointer group/btn ${
+              isDragOver
+                ? cloneMode
+                  ? 'border-purple-400 bg-purple-950/40 text-purple-200'
+                  : 'border-indigo-400 bg-indigo-950/40 text-indigo-200'
+                : 'border-slate-700/70 hover:border-indigo-400/80 bg-slate-900/40 hover:bg-slate-800/60 text-slate-500 hover:text-slate-200'
+            }`}
             title={`Adicionar carta no bolso #${displayNumber}`}
           >
-            <div className="w-8 h-8 rounded-full border border-dashed border-slate-600/70 group-hover/btn:border-indigo-400 group-hover/btn:bg-indigo-500/10 flex items-center justify-center mb-1 transition-colors">
-              <Plus className="w-4 h-4 text-slate-500 group-hover/btn:text-indigo-400 transition-colors" />
-            </div>
-            <span className="text-[10px] font-mono text-slate-600 group-hover/btn:text-slate-400">
-              #{displayNumber}
-            </span>
+            {isDragOver ? (
+              <div className="flex flex-col items-center justify-center p-1 text-center animate-pulse">
+                {cloneMode ? (
+                  <>
+                    <Copy className="w-5 h-5 text-purple-400 mb-1" />
+                    <span className="text-[10px] font-bold text-purple-300">Clonar</span>
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-5 h-5 text-indigo-400 mb-1" />
+                    <span className="text-[10px] font-bold text-indigo-300">Mover</span>
+                  </>
+                )}
+              </div>
+            ) : (
+              <>
+                <div className="w-8 h-8 rounded-full border border-dashed border-slate-600/70 group-hover/btn:border-indigo-400 group-hover/btn:bg-indigo-500/10 flex items-center justify-center mb-1 transition-colors">
+                  <Plus className="w-4 h-4 text-slate-500 group-hover/btn:text-indigo-400 transition-colors" />
+                </div>
+                <span className="text-[10px] font-mono text-slate-600 group-hover/btn:text-slate-400">
+                  #{displayNumber}
+                </span>
+              </>
+            )}
           </button>
         )}
       </div>

@@ -170,10 +170,10 @@ export const BinderModal: React.FC<BinderModalProps> = ({
                 />
               </label>
             </div>
-            {coverImageUrl && (
+            {Boolean(coverImageUrl?.trim()) && (
               <div className="mt-2.5 flex items-center gap-3 p-2 bg-slate-900/80 rounded-lg border border-slate-800">
                 <img
-                  src={coverImageUrl}
+                  src={coverImageUrl.trim()}
                   alt="Pré-visualização da capa"
                   className="w-12 h-14 object-cover rounded border border-slate-700 shrink-0 shadow-sm"
                   referrerPolicy="no-referrer"

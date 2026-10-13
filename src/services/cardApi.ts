@@ -1,4 +1,5 @@
 import { CardGame, CardFinish } from '../types/binder';
+import battleScenesData from '../data/battleScenesCards.json';
 
 export interface ApiCardResult {
   apiId: string;
@@ -11,6 +12,7 @@ export interface ApiCardResult {
   rarity: string;
   artist: string;
   rawNumber: number; // For clean numerical sorting
+  chronologicalIndex?: number; // Higher number means more recent release/expansion
   origin?: 'api' | 'standalone' | 'binder';
   originalCardId?: string;
   sourceBinderId?: string;
@@ -34,7 +36,11 @@ export function detectFinish(rarity?: string, name?: string, variants?: any): Ca
     str.includes('collector\'s rare') ||
     str.includes('prismatic') ||
     str.includes('special illustration') ||
-    str.includes('hyper rare')
+    str.includes('hyper rare') ||
+    str.includes('sec') ||
+    str.includes('sir') ||
+    str.includes('sar') ||
+    str.includes('ace spec')
   ) {
     return 'secret';
   }
@@ -42,7 +48,11 @@ export function detectFinish(rarity?: string, name?: string, variants?: any): Ca
     str.includes('holo') ||
     str.includes('holographic') ||
     str.includes('illustration rare') ||
-    str.includes('shiny')
+    str.includes('shiny') ||
+    str.includes('super rare') ||
+    str.includes('sr') ||
+    str.includes('parallel') ||
+    str.includes('ir')
   ) {
     return 'holo';
   }
@@ -50,7 +60,7 @@ export function detectFinish(rarity?: string, name?: string, variants?: any): Ca
     str.includes('foil') ||
     str.includes('mythic') ||
     str.includes('ultra rare') ||
-    str.includes('super rare') ||
+    str.includes('rara') ||
     str.includes('masterpiece')
   ) {
     return 'foil';
@@ -67,9 +77,84 @@ function parseRawNumber(numStr?: string): number {
   return match ? parseInt(match[0], 10) : 999999;
 }
 
+// Year lookup table for known Pokémon sets
+const POKEMON_SET_YEAR_MAP: Record<string, number> = {
+  // 2026
+  '30th': 2026,
+  '30th-c': 2026,
+  // 2025
+  'me05': 2025,
+  'me04': 2025,
+  'me03': 2025,
+  'me02.5': 2025,
+  'me02': 2025,
+  'B2a': 2025,
+  'B2': 2025,
+  'B1a': 2025,
+  'B1': 2025,
+  'me01': 2025,
+  'mee': 2025,
+  'mep': 2025,
+  'A4a': 2025,
+  'A4': 2025,
+  'sv10.5w': 2025,
+  'sv10.5b': 2025,
+  'A3b': 2025,
+  'sv10': 2025,
+  'A3a': 2025,
+  'A3': 2025,
+  'sv09': 2025,
+  'A2b': 2025,
+  'A2a': 2025,
+  'A2': 2025,
+  'sv08.5': 2025,
+  // 2024
+  'A1a': 2024,
+  '2024sv': 2024,
+  'sv08': 2024,
+  'A1': 2024,
+  'P-A': 2024,
+  'sv07': 2024,
+  'sv06.5': 2024,
+  'sv06': 2024,
+  'sv05': 2024,
+  'sv04.5': 2024,
+  // 2023
+  'sv04': 2023,
+  'mfb': 2023,
+  'sv03.5': 2023,
+  'sv03': 2023,
+  '2023sv': 2023,
+  'sv02': 2023,
+  'svp': 2023,
+  'sve': 2023,
+  'sv01': 2023,
+  'swsh12.5gg': 2023,
+  'swsh12.5': 2023,
+  // 2022
+  'swsh12': 2022,
+  'swsh12tg': 2022,
+  'swsh11': 2022,
+  'swsh11tg': 2022,
+  'pgo': 2022,
+  'swsh10': 2022,
+  'swsh10tg': 2022,
+  'swsh09': 2022,
+  'swsh09tg': 2022,
+  // 2021
+  'swsh08': 2021,
+  'cel25': 2021,
+  'cel25c': 2021,
+  'swsh07': 2021,
+  'swsh06': 2021,
+  'swsh05': 2021,
+  'swsh045': 2021,
+  'swsh045sv': 2021,
+};
+
 // In-memory cache for tcgdex sets
 let tcgdexSetsCache: { id: string; name: string }[] | null = null;
-async function fetchTcgdexSets(): Promise<{ id: string; name: string }[]> {
+export async function fetchTcgdexSets(): Promise<{ id: string; name: string }[]> {
   if (tcgdexSetsCache && tcgdexSetsCache.length > 0) return tcgdexSetsCache;
   try {
     const res = await fetch('https://api.tcgdex.net/v2/en/sets');
@@ -86,13 +171,36 @@ async function fetchTcgdexSets(): Promise<{ id: string; name: string }[]> {
   return [];
 }
 
+// Dynamically generate the full list of Pokémon sets formatted with year in descending order
+export async function getPokemonSetOptions(): Promise<string[]> {
+  const sets = await fetchTcgdexSets();
+  if (!sets || sets.length === 0) return [];
+
+  // /sets endpoint provides sets in chronological order (oldest to newest)
+  // Reversing gives the most recent at the top
+  const reversed = [...sets].reverse();
+  const seen = new Set<string>();
+  const list: string[] = [];
+
+  for (const s of reversed) {
+    const yr = POKEMON_SET_YEAR_MAP[s.id];
+    const label = yr ? `${s.name} (${yr})` : s.name;
+    if (!seen.has(label)) {
+      seen.add(label);
+      list.push(label);
+    }
+  }
+
+  return list;
+}
+
 export async function searchCards(
   game: CardGame,
   nameQuery: string,
   rawSetQuery: string
 ): Promise<ApiCardResult[]> {
   const nameTrimmed = nameQuery.trim();
-  // Strip year in parenthesis, e.g., "Base Set (1999)" -> "Base Set"
+  // Strip year in parenthesis, e.g., "Prismatic Evolutions (2025)" -> "Prismatic Evolutions"
   const setClean = rawSetQuery.replace(/\s*\(\d{4}\)$/, '').trim();
 
   if (!nameTrimmed && !setClean) return [];
@@ -112,51 +220,66 @@ export async function searchCards(
         queryParam = `(set:"${setClean}" or e:"${setClean}")`;
       }
 
-      let res = await fetch(
-        `https://api.scryfall.com/cards/search?q=${encodeURIComponent(queryParam)}&order=name`,
-        { signal: controller.signal }
-      );
-
-      // If strict quote search returned 404, fall back to soft search
-      if (!res.ok && res.status === 404 && nameTrimmed && setClean) {
-        const fallbackQuery = `${nameTrimmed} (set:"${setClean}" or e:"${setClean}")`;
+      let res: Response;
+      try {
         res = await fetch(
-          `https://api.scryfall.com/cards/search?q=${encodeURIComponent(fallbackQuery)}&order=name`,
+          `https://api.scryfall.com/cards/search?q=${encodeURIComponent(queryParam)}&order=released&dir=desc`,
           { signal: controller.signal }
         );
+
+        // If strict quote search returned 404, fall back to soft search
+        if (!res.ok && res.status === 404 && nameTrimmed && setClean) {
+          const fallbackQuery = `${nameTrimmed} (set:"${setClean}" or e:"${setClean}")`;
+          res = await fetch(
+            `https://api.scryfall.com/cards/search?q=${encodeURIComponent(fallbackQuery)}&order=released&dir=desc`,
+            { signal: controller.signal }
+          );
+        }
+      } catch (fetchErr) {
+        clearTimeout(timeoutId);
+        console.warn('Scryfall fetch warning:', fetchErr);
+        return [];
       }
 
       clearTimeout(timeoutId);
 
       if (!res.ok) {
         if (res.status === 404) return [];
-        throw new Error('Falha ao consultar a API da Scryfall.');
+        return [];
       }
 
       const data = await res.json();
       if (!data.data || !Array.isArray(data.data)) return [];
 
-      let list = data.data.slice(0, 40).map((c: any) => {
-        const image =
-          c.image_uris?.normal ||
-          c.image_uris?.large ||
-          c.card_faces?.[0]?.image_uris?.normal ||
-          '';
+      let list: ApiCardResult[] = data.data.map((c: any) => {
+        let img = '';
+        if (c.image_uris && c.image_uris.normal) {
+          img = c.image_uris.normal;
+        } else if (c.card_faces && c.card_faces[0]?.image_uris?.normal) {
+          img = c.card_faces[0].image_uris.normal;
+        }
 
-        const cardRarity = formatRarity(c.rarity);
-        const cardFinish = detectFinish(cardRarity, c.name);
+        const rarity = formatRarity(c.rarity);
+        const cardFinish = detectFinish(c.rarity, c.name);
+
+        let chrono = 0;
+        if (c.released_at) {
+          const t = new Date(c.released_at).getTime();
+          if (!isNaN(t)) chrono = Math.floor(t / 1000);
+        }
 
         return {
           apiId: c.id,
           name: c.name,
           game: 'magic' as CardGame,
-          imageUrl: image,
+          imageUrl: img,
           finish: cardFinish,
-          setName: c.set_name || '',
-          collectorNumber: c.collector_number ? `#${c.collector_number}` : '',
-          rarity: cardRarity,
-          artist: c.artist || 'Desconhecido',
+          setName: c.set_name,
+          collectorNumber: `#${c.collector_number}`,
+          rarity,
+          artist: c.artist || 'Artista MTG',
           rawNumber: parseRawNumber(c.collector_number),
+          chronologicalIndex: chrono,
         };
       });
 
@@ -182,20 +305,27 @@ export async function searchCards(
         url += `&cardset=${encodeURIComponent(setClean)}`;
       }
 
-      let res = await fetch(url, { signal: controller.signal });
+      let res: Response;
+      try {
+        res = await fetch(url, { signal: controller.signal });
 
-      // If strict cardset+fname failed, try fname only and filter client-side
-      if (!res.ok && nameTrimmed && setClean) {
-        res = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?fname=${encodeURIComponent(nameTrimmed)}`, {
-          signal: controller.signal,
-        });
+        // If strict cardset+fname failed, try fname only and filter client-side
+        if (!res.ok && nameTrimmed && setClean) {
+          res = await fetch(
+            `https://db.ygoprodeck.com/api/v7/cardinfo.php?fname=${encodeURIComponent(nameTrimmed)}`,
+            { signal: controller.signal }
+          );
+        }
+      } catch (fetchErr) {
+        clearTimeout(timeoutId);
+        console.warn('YGOPRODeck fetch warning:', fetchErr);
+        return [];
       }
 
       clearTimeout(timeoutId);
 
       if (!res.ok) {
-        if (res.status === 400 || res.status === 404) return [];
-        throw new Error('Falha ao consultar a API do YGOPRODeck.');
+        return [];
       }
 
       const data = await res.json();
@@ -226,101 +356,208 @@ export async function searchCards(
           rarity,
           artist: 'Kazuki Takahashi / Studio Dice',
           rawNumber: parseRawNumber(matchedSet?.set_code || String(c.id)),
+          chronologicalIndex: Number(c.id) || 0,
         });
       });
 
       return list;
     }
 
-    // POKÉMON (TCGdex - fast, reliable, comprehensive)
+    // DIGIMON CARD GAME (digimoncard.io API)
+    if (game === 'digimon') {
+      let queryUrl = '';
+      const packCode = setClean.includes(':') ? setClean.split(':')[0].trim() : setClean;
+
+      if (nameTrimmed && packCode) {
+        queryUrl = `https://digimoncard.io/api-public/search.php?n=${encodeURIComponent(nameTrimmed)}&pack=${encodeURIComponent(packCode)}`;
+      } else if (nameTrimmed) {
+        queryUrl = `https://digimoncard.io/api-public/search.php?n=${encodeURIComponent(nameTrimmed)}`;
+      } else if (packCode) {
+        queryUrl = `https://digimoncard.io/api-public/search.php?pack=${encodeURIComponent(packCode)}`;
+      }
+
+      if (!queryUrl) return [];
+
+      let res: Response;
+      try {
+        res = await fetch(queryUrl, { signal: controller.signal });
+
+        // Fallback if combined query failed: search by name
+        if (!res.ok && nameTrimmed && packCode) {
+          res = await fetch(
+            `https://digimoncard.io/api-public/search.php?n=${encodeURIComponent(nameTrimmed)}`,
+            { signal: controller.signal }
+          );
+        }
+      } catch (fetchErr) {
+        clearTimeout(timeoutId);
+        console.warn('Digimon fetch warning:', fetchErr);
+        return [];
+      }
+
+      clearTimeout(timeoutId);
+
+      if (!res.ok) {
+        return [];
+      }
+
+      const data = await res.json();
+      if (!Array.isArray(data)) return [];
+
+      let list: ApiCardResult[] = data.map((c: any) => {
+        const setName = Array.isArray(c.set_name) ? c.set_name[0] : (c.set_name || 'Digimon Booster');
+        const rarityCode = (c.rarity || 'C').toUpperCase();
+        const finish = detectFinish(rarityCode, c.name);
+
+        return {
+          apiId: c.id,
+          name: c.name,
+          game: 'digimon' as CardGame,
+          imageUrl: `https://images.digimoncard.io/images/cards/${c.id}.webp`,
+          finish,
+          setName,
+          collectorNumber: `#${c.id}`,
+          rarity: rarityCode === 'SEC' ? 'Secret Rare' : rarityCode === 'SR' ? 'Super Rare' : rarityCode === 'R' ? 'Rare' : rarityCode === 'U' ? 'Uncommon' : rarityCode === 'P' ? 'Promo' : 'Common',
+          artist: c.artist || 'Bandai',
+          rawNumber: parseRawNumber(c.id),
+          chronologicalIndex: parseRawNumber(c.id),
+        };
+      });
+
+      if (setClean) {
+        const lowerSet = setClean.toLowerCase();
+        const filtered = list.filter((c) => c.setName.toLowerCase().includes(lowerSet) || c.collectorNumber.toLowerCase().includes(packCode.toLowerCase()));
+        if (filtered.length > 0) list = filtered;
+      }
+
+      return list;
+    }
+
+    // BATTLE SCENES (Copag / Marvel - Comprehensive 810 cards curated DB)
+    if (game === 'battlescenes') {
+      clearTimeout(timeoutId);
+
+      let cards = (battleScenesData as any[]) || [];
+
+      if (nameTrimmed) {
+        const lower = nameTrimmed.toLowerCase();
+        cards = cards.filter(
+          (c) =>
+            c.name.toLowerCase().includes(lower) ||
+            c.subName?.toLowerCase().includes(lower) ||
+            c.type?.toLowerCase().includes(lower) ||
+            c.alignment?.toLowerCase().includes(lower)
+        );
+      }
+
+      if (setClean) {
+        const lowerSet = setClean.toLowerCase();
+        cards = cards.filter(
+          (c) =>
+            c.setName.toLowerCase().includes(lowerSet) ||
+            c.collectionCode?.toLowerCase().includes(lowerSet)
+        );
+      }
+
+      const list: ApiCardResult[] = cards.map((c) => {
+        const isFoil = c.rarity?.toLowerCase().includes('personagem') || c.type?.toLowerCase().includes('personagem');
+        return {
+          apiId: c.id,
+          name: c.name,
+          game: 'battlescenes' as CardGame,
+          imageUrl: c.imageUrl,
+          finish: isFoil ? 'holo' : 'normal',
+          setName: c.setName,
+          collectorNumber: c.collectorNumber,
+          rarity: c.rarity || 'Personagem',
+          artist: 'Copag / Marvel',
+          rawNumber: parseRawNumber(c.collectorNumber),
+          chronologicalIndex: parseRawNumber(c.collectorNumber),
+        };
+      });
+
+      return list;
+    }
+
+    // POKÉMON (TCGdex - fast, reliable, comprehensive with all expansions up to the newest)
     if (game === 'pokemon') {
       const tcgdexSets = await fetchTcgdexSets();
       const setMap = new Map<string, string>();
-      tcgdexSets.forEach((s) => setMap.set(s.id, s.name));
+      const setOrderMap = new Map<string, number>();
+
+      tcgdexSets.forEach((s, idx) => {
+        setMap.set(s.id.toLowerCase(), s.name);
+        setOrderMap.set(s.id.toLowerCase(), idx);
+      });
 
       const resolveSetName = (cardId: string, fallbackName?: string): string => {
         if (fallbackName) return fallbackName;
         const lastDash = cardId.lastIndexOf('-');
         if (lastDash !== -1) {
-          const prefix = cardId.substring(0, lastDash);
+          const prefix = cardId.substring(0, lastDash).toLowerCase();
           if (setMap.has(prefix)) return setMap.get(prefix)!;
         }
         const firstDash = cardId.indexOf('-');
         if (firstDash !== -1) {
-          const prefix = cardId.substring(0, firstDash);
+          const prefix = cardId.substring(0, firstDash).toLowerCase();
           if (setMap.has(prefix)) return setMap.get(prefix)!;
         }
         return 'Expansão Pokémon';
       };
 
-      // Find matched set in tcgdex if setClean is provided
+      const getCardChronologicalIndex = (cardId: string): number => {
+        const lastDash = cardId.lastIndexOf('-');
+        if (lastDash !== -1) {
+          const prefix = cardId.substring(0, lastDash).toLowerCase();
+          if (setOrderMap.has(prefix)) return setOrderMap.get(prefix)!;
+        }
+        const firstDash = cardId.indexOf('-');
+        if (firstDash !== -1) {
+          const prefix = cardId.substring(0, firstDash).toLowerCase();
+          if (setOrderMap.has(prefix)) return setOrderMap.get(prefix)!;
+        }
+        return 0;
+      };
+
+      // Find matched set in tcgdex if setClean is provided (exact match first, then partial)
       let matchedTcgdexSet: { id: string; name: string } | undefined;
       if (setClean) {
         const lowerTarget = setClean.toLowerCase();
-        matchedTcgdexSet = tcgdexSets.find((s) => {
-          const sLower = s.name.toLowerCase();
-          return sLower === lowerTarget || sLower.includes(lowerTarget);
-        });
+        matchedTcgdexSet =
+          tcgdexSets.find((s) => s.name.toLowerCase() === lowerTarget) ||
+          tcgdexSets.find((s) => s.name.toLowerCase().includes(lowerTarget));
       }
 
       // 1) User selected a specific Set
       if (matchedTcgdexSet) {
-        const setRes = await fetch(`https://api.tcgdex.net/v2/en/sets/${matchedTcgdexSet.id}`, {
-          signal: controller.signal,
-        });
-        clearTimeout(timeoutId);
-
-        if (setRes.ok) {
-          const setData = await setRes.json();
-          let cardsInSet: any[] = setData.cards || [];
-
-          // If user also provided a name, filter strictly
-          if (nameTrimmed) {
-            const lowerName = nameTrimmed.toLowerCase();
-            cardsInSet = cardsInSet.filter((c: any) =>
-              c.name.toLowerCase().includes(lowerName)
-            );
-          }
-
-          // Return all matching cards in this set
-          const setName = setData.name || matchedTcgdexSet.name;
-          const allCards: ApiCardResult[] = cardsInSet.map((cardSummary: any) => {
-            const img = cardSummary.image ? `${cardSummary.image}/high.webp` : '';
-            return {
-              apiId: cardSummary.id,
-              name: cardSummary.name,
-              game: 'pokemon' as CardGame,
-              imageUrl: img,
-              finish: detectFinish('Rare', cardSummary.name),
-              setName,
-              collectorNumber: cardSummary.localId ? `#${cardSummary.localId}` : '',
-              rarity: 'Rara',
-              artist: 'Ken Sugimori',
-              rawNumber: parseRawNumber(cardSummary.localId),
-            };
+        try {
+          const setRes = await fetch(`https://api.tcgdex.net/v2/en/sets/${matchedTcgdexSet.id}`, {
+            signal: controller.signal,
           });
+          clearTimeout(timeoutId);
 
-          return allCards;
-        }
-      }
+          if (setRes.ok) {
+            const setData = await setRes.json();
+            let cardsInSet: any[] = setData.cards || [];
 
-      // 2) User searched by name (no specific set matched or cross-set search)
-      if (nameTrimmed) {
-        const searchRes = await fetch(`https://api.tcgdex.net/v2/en/cards?name=${encodeURIComponent(nameTrimmed)}`, {
-          signal: controller.signal,
-        });
-        clearTimeout(timeoutId);
+            // If user also provided a name, filter strictly
+            if (nameTrimmed) {
+              const lowerName = nameTrimmed.toLowerCase();
+              cardsInSet = cardsInSet.filter((c: any) =>
+                c.name.toLowerCase().includes(lowerName)
+              );
+            }
 
-        if (searchRes.ok) {
-          const cardsList = await searchRes.json();
-          if (Array.isArray(cardsList) && cardsList.length > 0) {
-            // Keep cards that have an image and map all of them without cutoff
-            const validCards = cardsList.filter((c: any) => !!c.image);
-            const sourceList = validCards.length > 0 ? validCards : cardsList;
+            // Return all matching cards in this set
+            const setName = setData.name || matchedTcgdexSet.name;
+            const chronoIndex = setOrderMap.get(matchedTcgdexSet.id.toLowerCase()) ?? 999;
 
-            const allResults: ApiCardResult[] = sourceList.map((cardSummary: any) => {
-              const img = cardSummary.image ? `${cardSummary.image}/high.webp` : '';
-              const setName = resolveSetName(cardSummary.id);
+            const allCards: ApiCardResult[] = cardsInSet.map((cardSummary: any) => {
+              const img = cardSummary.image
+                ? cardSummary.image.endsWith('.webp') || cardSummary.image.endsWith('.png')
+                  ? cardSummary.image
+                  : `${cardSummary.image}/high.webp`
+                : '';
 
               return {
                 apiId: cardSummary.id,
@@ -333,11 +570,68 @@ export async function searchCards(
                 rarity: 'Rara',
                 artist: 'Ken Sugimori',
                 rawNumber: parseRawNumber(cardSummary.localId),
+                chronologicalIndex: chronoIndex,
               };
             });
 
-            return allResults;
+            return allCards;
           }
+        } catch (setErr) {
+          clearTimeout(timeoutId);
+          console.warn('Tcgdex set fetch warning:', setErr);
+          return [];
+        }
+      }
+
+      // 2) User searched by name (no specific set matched or cross-set search)
+      if (nameTrimmed) {
+        try {
+          const searchRes = await fetch(`https://api.tcgdex.net/v2/en/cards?name=${encodeURIComponent(nameTrimmed)}`, {
+            signal: controller.signal,
+          });
+          clearTimeout(timeoutId);
+
+          if (searchRes.ok) {
+            const cardsList = await searchRes.json();
+            if (Array.isArray(cardsList) && cardsList.length > 0) {
+              // Keep cards that have an image and map all of them without cutoff
+              const validCards = cardsList.filter((c: any) => !!c.image);
+              const sourceList = validCards.length > 0 ? validCards : cardsList;
+
+              const allResults: ApiCardResult[] = sourceList.map((cardSummary: any) => {
+                const img = cardSummary.image
+                  ? cardSummary.image.endsWith('.webp') || cardSummary.image.endsWith('.png')
+                    ? cardSummary.image
+                    : `${cardSummary.image}/high.webp`
+                  : '';
+                const setName = resolveSetName(cardSummary.id);
+                const chronoIndex = getCardChronologicalIndex(cardSummary.id);
+
+                return {
+                  apiId: cardSummary.id,
+                  name: cardSummary.name,
+                  game: 'pokemon' as CardGame,
+                  imageUrl: img,
+                  finish: detectFinish('Rare', cardSummary.name),
+                  setName,
+                  collectorNumber: cardSummary.localId ? `#${cardSummary.localId}` : '',
+                  rarity: 'Rara',
+                  artist: 'Ken Sugimori',
+                  rawNumber: parseRawNumber(cardSummary.localId),
+                  chronologicalIndex: chronoIndex,
+                };
+              });
+
+              // Default cross-set results to sort with newest releases at top
+              allResults.sort((a, b) => (b.chronologicalIndex ?? 0) - (a.chronologicalIndex ?? 0));
+
+              return allResults;
+            }
+          }
+        } catch (searchErr) {
+          clearTimeout(timeoutId);
+          console.warn('Tcgdex cards search warning:', searchErr);
+          return [];
         }
       }
 
@@ -347,7 +641,7 @@ export async function searchCards(
     return [];
   } catch (err: unknown) {
     clearTimeout(timeoutId);
-    console.error('API search error:', err);
+    console.warn('API search warning:', err);
     return [];
   }
 }

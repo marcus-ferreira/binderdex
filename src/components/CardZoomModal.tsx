@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Sparkles, User, Edit3, Trash2 } from 'lucide-react';
+import { X, Sparkles, User, Edit3, Trash2, Copy } from 'lucide-react';
 import { BinderCard } from '../types/binder';
 
 interface CardZoomModalProps {
@@ -8,6 +8,7 @@ interface CardZoomModalProps {
   onClose: () => void;
   onChangeCard?: (slotIndex: number, card: BinderCard) => void;
   onDeleteCard?: (slotIndex: number) => void;
+  onCloneCard?: (card: BinderCard, slotIndex: number) => void;
 }
 
 export const CardZoomModal: React.FC<CardZoomModalProps> = ({
@@ -16,6 +17,7 @@ export const CardZoomModal: React.FC<CardZoomModalProps> = ({
   onClose,
   onChangeCard,
   onDeleteCard,
+  onCloneCard,
 }) => {
   const [rotate, setRotate] = useState({ x: 0, y: 0 });
   const [imageError, setImageError] = useState(false);
@@ -87,9 +89,9 @@ export const CardZoomModal: React.FC<CardZoomModalProps> = ({
                 isFoil ? 'holo-foil' : ''
               }`}
             >
-              {(imgSrc || card.imageUrl) && !imageError ? (
+              {Boolean((imgSrc || card.imageUrl)?.trim()) && !imageError ? (
                 <img
-                  src={imgSrc || card.imageUrl}
+                  src={(imgSrc || card.imageUrl).trim()}
                   alt={card.name}
                   onError={handleImageError}
                   className="w-full h-full object-contain object-center pointer-events-none drop-shadow-md select-none"
@@ -227,7 +229,22 @@ export const CardZoomModal: React.FC<CardZoomModalProps> = ({
                     </div>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-2.5">
+                  <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                    {onCloneCard && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onCloneCard(card, slotIndex);
+                          onClose();
+                        }}
+                        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold text-purple-200 hover:text-white bg-purple-950/60 hover:bg-purple-900/80 border border-purple-800/60 rounded-lg transition-colors cursor-pointer shadow-sm"
+                        title="Duplicar carta no próximo bolso vazio do fichário"
+                      >
+                        <Copy className="w-3.5 h-3.5 text-purple-400" />
+                        <span>Clonar Carta</span>
+                      </button>
+                    )}
+
                     {onChangeCard && (
                       <button
                         type="button"

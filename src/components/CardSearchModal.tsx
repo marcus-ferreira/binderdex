@@ -11,8 +11,8 @@ import {
   CheckSquare,
   Square,
 } from 'lucide-react';
-import { BinderCard, CardGame } from '../types/binder';
-import { searchCards, ApiCardResult } from '../services/cardApi';
+import { BinderCard, CardGame, SUPPORTED_GAMES } from '../types/binder';
+import { searchCards, ApiCardResult, getPokemonSetOptions } from '../services/cardApi';
 
 interface CardSearchModalProps {
   isOpen: boolean;
@@ -21,14 +21,52 @@ interface CardSearchModalProps {
   slotIndex: number | null;
   initialCard?: BinderCard;
   defaultGame: CardGame;
+  lockGame?: boolean;
   currentTotalSlots?: number;
 }
 
-type SortOption = 'number-asc' | 'number-desc' | 'name-asc' | 'name-desc';
+type SortOption =
+  | 'recent-first'
+  | 'oldest-first'
+  | 'number-asc'
+  | 'number-desc'
+  | 'name-asc'
+  | 'name-desc';
 
 // Sets with release year in parentheses, strictly sorted in descending order (most recent at top)
 const POKEMON_SETS_WITH_YEAR = [
+  '30th Classic Collection (2026)',
+  '30th Celebration (2026)',
+  'Pitch Black (2025)',
+  'Chaos Rising (2025)',
+  'Perfect Order (2025)',
+  'Paldean Wonders (2025)',
+  'Ascended Heroes (2025)',
+  'Fantastical Parade (2025)',
+  'Crimson Blaze (2025)',
+  'Phantasmal Flames (2025)',
+  'Mega Rising (2025)',
+  'MEP Black Star Promos (2025)',
+  'Mega Evolution (2025)',
+  'Mega Evolution Energy (2025)',
+  'Secluded Springs (2025)',
+  'Wisdom of Sea and Sky (2025)',
+  'White Flare (2025)',
+  'Black Bolt (2025)',
+  'Eevee Grove (2025)',
+  'Destined Rivals (2025)',
+  'Extradimensional Crisis (2025)',
+  'Celestial Guardians (2025)',
+  'Journey Together (2025)',
+  'Shining Revelry (2025)',
+  'Triumphant Light (2025)',
+  'Space-Time Smackdown (2025)',
+  'Prismatic Evolutions (2025)',
+  'Mythical Island (2024)',
+  'McDonald\'s Collection 2024 (2024)',
   'Surging Sparks (2024)',
+  'Genetic Apex (2024)',
+  'Promos-A (2024)',
   'Stellar Crown (2024)',
   'Shrouded Fable (2024)',
   'Twilight Masquerade (2024)',
@@ -147,6 +185,9 @@ const POKEMON_SETS_WITH_YEAR = [
 ];
 
 const MAGIC_SETS_WITH_YEAR = [
+  'Tarkir: Dragonstorm (2025)',
+  'Aetherdrift (2025)',
+  'Innistrad Remastered (2025)',
   'Foundations (2024)',
   'Duskmourn: House of Horror (2024)',
   'Bloomburrow (2024)',
@@ -216,6 +257,9 @@ const MAGIC_SETS_WITH_YEAR = [
 ];
 
 const YUGIOH_SETS_WITH_YEAR = [
+  'Supreme Darkness (2025)',
+  'Alliance Insight (2025)',
+  'Quarter Century Trinity Box (2025)',
   '25th Anniversary Rarity Collection II (2024)',
   'Quarter Century Stampede (2024)',
   'Quarter Century Bonanza (2024)',
@@ -278,6 +322,53 @@ const YUGIOH_SETS_WITH_YEAR = [
   'Legend of Blue Eyes White Dragon (2002)',
 ];
 
+const DIGIMON_SETS_WITH_YEAR = [
+  'BT-20: Over the X (2025)',
+  'EX-08: Chain of Liberation (2025)',
+  'BT-19: Xros Evolution (2024)',
+  'BT-18: Element Successor (2024)',
+  'EX-07: Digimon Liberator (2024)',
+  'BT-17: Secret Crisis (2024)',
+  'EX-06: Infernal Ascension (2024)',
+  'BT-16: Beginning Observer (2024)',
+  'BT-15: Exceed Apocalypse (2024)',
+  'ST-19: Starter Deck Fable Waltz (2024)',
+  'ST-18: Starter Deck Vortex Warrior (2024)',
+  'ST-17: Advanced Deck Double Typhoon (2024)',
+  'BT-14: Blast Ace (2023)',
+  'EX-05: Animal Colosseum (2023)',
+  'BT-13: Versus Royal Knights (2023)',
+  'BT-12: Across Time (2023)',
+  'EX-04: Alternative Being (2023)',
+  'ST-14: Advanced Deck Beelzemon (2023)',
+  'BT-11: Dimensional Phase (2023)',
+  'BT-10: Xros Encounter (2022)',
+  'EX-03: Draconic Roar (2022)',
+  'BT-09: X Record (2022)',
+  'EX-02: Digital Hazard (2022)',
+  'BT-08: New Awakening (2022)',
+  'BT-07: Next Adventure (2022)',
+  'EX-01: Classic Collection (2021)',
+  'BT-06: Double Diamond (2021)',
+  'BT-05: Battle of Omni (2021)',
+  'BT-04: Great Legend (2021)',
+  'BT01-03: Release Special Booster Ver.1.0 (2021)',
+  'ST-01: Gaia Red (2020)',
+];
+
+const BATTLE_SCENES_SETS_WITH_YEAR = [
+  'Guerra Civil - Illuminati (2015)',
+  'Guerra Civil (2015)',
+  'Ofensiva Surpresa (2015)',
+  'Iniciativa Vingadores (2015)',
+  'Invasão Cósmica (2014)',
+  'Múltiplas Identidades - Decks (2014)',
+  'Múltiplas Identidades (2014)',
+  'Poderes Ocultos (2014)',
+  'Evolução Tática (2013)',
+  'Universo Marvel (2013)',
+];
+
 export const CardSearchModal: React.FC<CardSearchModalProps> = ({
   isOpen,
   onClose,
@@ -285,6 +376,7 @@ export const CardSearchModal: React.FC<CardSearchModalProps> = ({
   slotIndex,
   initialCard,
   defaultGame,
+  lockGame = false,
   currentTotalSlots = 72,
 }) => {
   const [game, setGame] = useState<CardGame>(defaultGame);
@@ -294,15 +386,30 @@ export const CardSearchModal: React.FC<CardSearchModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [selectedCards, setSelectedCards] = useState<ApiCardResult[]>([]);
-  const [sortBy, setSortBy] = useState<SortOption>('number-asc');
+  const [sortBy, setSortBy] = useState<SortOption>('recent-first');
+  const [dynamicPokemonSets, setDynamicPokemonSets] = useState<string[]>([]);
 
   const [currentPage, setCurrentPage] = useState(1);
-  const ITEMS_PER_PAGE = 20;
+  const ITEMS_PER_PAGE = 50;
+
+  // Dynamically load the latest sets from TCGdex API when Pokémon is selected
+  useEffect(() => {
+    if (isOpen && game === 'pokemon') {
+      getPokemonSetOptions()
+        .then((sets) => {
+          if (sets && sets.length > 0) {
+            setDynamicPokemonSets(sets);
+          }
+        })
+        .catch((err) => console.warn('Could not load dynamic sets:', err));
+    }
+  }, [isOpen, game]);
 
   useEffect(() => {
     if (isOpen) {
-      setGame(initialCard ? initialCard.game : defaultGame);
-      setSortBy('number-asc');
+      const activeGame = initialCard ? initialCard.game : defaultGame;
+      setGame(activeGame);
+      setSortBy('recent-first');
       setCurrentPage(1);
       if (initialCard) {
         setNameQuery(initialCard.name);
@@ -334,11 +441,15 @@ export const CardSearchModal: React.FC<CardSearchModalProps> = ({
   const getSetOptions = () => {
     switch (game) {
       case 'pokemon':
-        return POKEMON_SETS_WITH_YEAR;
+        return dynamicPokemonSets.length > 0 ? dynamicPokemonSets : POKEMON_SETS_WITH_YEAR;
       case 'magic':
         return MAGIC_SETS_WITH_YEAR;
       case 'yugioh':
         return YUGIOH_SETS_WITH_YEAR;
+      case 'digimon':
+        return DIGIMON_SETS_WITH_YEAR;
+      case 'battlescenes':
+        return BATTLE_SCENES_SETS_WITH_YEAR;
       default:
         return [];
     }
@@ -365,6 +476,13 @@ export const CardSearchModal: React.FC<CardSearchModalProps> = ({
     try {
       const cards = await searchCards(game, trimmedName, trimmedSet);
       setResults(cards);
+      // If user selected a specific set, number-asc is the most convenient
+      // If user did a cross-set search, recent-first shows the latest cards first
+      if (trimmedSet) {
+        setSortBy('number-asc');
+      } else {
+        setSortBy('recent-first');
+      }
       if (cards.length === 0) {
         setErrorMsg('Nenhuma carta encontrada com esses filtros. Verifique o nome ou selecione outra coleção.');
       }
@@ -375,8 +493,22 @@ export const CardSearchModal: React.FC<CardSearchModalProps> = ({
     }
   };
 
-  // Sort results by Number or Name
+  // Sort results by Recency, Number or Name
   const sortedResults = [...results].sort((a, b) => {
+    if (sortBy === 'recent-first') {
+      return (
+        (b.chronologicalIndex ?? 0) - (a.chronologicalIndex ?? 0) ||
+        a.rawNumber - b.rawNumber ||
+        a.name.localeCompare(b.name)
+      );
+    }
+    if (sortBy === 'oldest-first') {
+      return (
+        (a.chronologicalIndex ?? 0) - (b.chronologicalIndex ?? 0) ||
+        a.rawNumber - b.rawNumber ||
+        a.name.localeCompare(b.name)
+      );
+    }
     if (sortBy === 'number-asc') {
       return a.rawNumber - b.rawNumber || a.name.localeCompare(b.name);
     }
@@ -494,6 +626,31 @@ export const CardSearchModal: React.FC<CardSearchModalProps> = ({
 
         {/* Structured Search Form */}
         <form onSubmit={handleSearchSubmit} className="p-4 sm:p-6 border-b border-slate-800 bg-[#121624] space-y-3.5 shrink-0">
+          {/* Game Selection Row (Interactive when not locked) */}
+          {!lockGame && (
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+              <span className="text-[11px] font-semibold text-slate-400 mr-1 shrink-0">Jogo:</span>
+              {SUPPORTED_GAMES.map((g) => (
+                <button
+                  key={g.id}
+                  type="button"
+                  onClick={() => {
+                    setGame(g.id);
+                    setSetQuery('');
+                    setResults([]);
+                    setSelectedCards([]);
+                  }}
+                  className={`px-2.5 py-1 text-xs rounded-lg transition-colors cursor-pointer shrink-0 font-medium ${
+                    game === g.id
+                      ? 'bg-indigo-600 text-white font-bold shadow-sm'
+                      : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-700/60'
+                  }`}
+                >
+                  {g.label}
+                </button>
+              ))}
+            </div>
+          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
             {/* Card Name Field */}
@@ -580,6 +737,8 @@ export const CardSearchModal: React.FC<CardSearchModalProps> = ({
                   onChange={(e) => setSortBy(e.target.value as SortOption)}
                   className="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 cursor-pointer"
                 >
+                  <option value="recent-first">Mais Recentes (Novas Primeiro)</option>
+                  <option value="oldest-first">Mais Antigas (Clássicas Primeiro)</option>
                   <option value="number-asc">Número (Crescente)</option>
                   <option value="number-desc">Número (Decrescente)</option>
                   <option value="name-asc">Nome (A - Z)</option>
@@ -646,13 +805,20 @@ export const CardSearchModal: React.FC<CardSearchModalProps> = ({
 
                       {/* Card Image */}
                       <div className={`aspect-[5/7] rounded-md overflow-hidden bg-black/60 mb-2 relative ${isFoil ? 'holo-foil' : ''}`}>
-                        <img
-                          src={card.imageUrl}
-                          alt={card.name}
-                          loading="lazy"
-                          className="w-full h-full object-contain pointer-events-none"
-                          referrerPolicy="no-referrer"
-                        />
+                        {card.imageUrl && card.imageUrl.trim() !== '' ? (
+                          <img
+                            src={card.imageUrl}
+                            alt={card.name}
+                            loading="lazy"
+                            className="w-full h-full object-contain pointer-events-none"
+                            referrerPolicy="no-referrer"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center bg-slate-900 text-slate-400">
+                            <span className="text-[11px] font-bold text-slate-200 line-clamp-2">{card.name}</span>
+                            <span className="text-[9px] text-slate-500 mt-1">{card.setName}</span>
+                          </div>
+                        )}
 
                         {isFoil && (
                           <div className="absolute bottom-1 left-1 pointer-events-none">
