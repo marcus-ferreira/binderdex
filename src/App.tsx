@@ -6,23 +6,15 @@ import { BinderSpread } from './components/BinderSpread';
 import { BinderModal } from './components/BinderModal';
 import { CardSearchModal } from './components/CardSearchModal';
 import { CardZoomModal } from './components/CardZoomModal';
-import { OverallCardList } from './components/OverallCardList';
-import { DeckBuilder } from './components/DeckBuilder';
-import { Binder, BinderCard, LooseCard, Deck } from './types/binder';
-import { AggregateCardItem } from './components/OverallCardList';
+import { OverallCardList, AggregateCardItem } from './components/OverallCardList';
+import { Binder, BinderCard } from './types/binder';
 import {
   loadBindersFromStorage,
   saveBindersToStorage,
-  loadLooseCardsFromStorage,
-  saveLooseCardsToStorage,
-  loadDecksFromStorage,
-  saveDecksToStorage,
 } from './utils/storage';
 
 export default function App() {
   const [binders, setBinders] = useState<Binder[]>([]);
-  const [looseCards, setLooseCards] = useState<LooseCard[]>([]);
-  const [decks, setDecks] = useState<Deck[]>([]);
   const [activeBinderId, setActiveBinderId] = useState<string | null>(null);
   const [binderSearch, setBinderSearch] = useState('');
   const [activeTab, setActiveTab] = useState<AppNavTab>('binders');
@@ -64,10 +56,6 @@ export default function App() {
   useEffect(() => {
     const loadedBinders = loadBindersFromStorage();
     setBinders(loadedBinders);
-    const loadedLooseCards = loadLooseCardsFromStorage();
-    setLooseCards(loadedLooseCards);
-    const loadedDecks = loadDecksFromStorage();
-    setDecks(loadedDecks);
   }, []);
 
   // Sync state to localStorage
@@ -76,29 +64,16 @@ export default function App() {
     saveBindersToStorage(updatedList);
   };
 
-  const handleUpdateLooseCards = (updatedLoose: LooseCard[]) => {
-    setLooseCards(updatedLoose);
-    saveLooseCardsToStorage(updatedLoose);
-  };
-
-  const handleUpdateDecks = (updatedDecks: Deck[]) => {
-    setDecks(updatedDecks);
-    saveDecksToStorage(updatedDecks);
-  };
-
   const activeBinder = binders.find((b) => b.id === activeBinderId) || null;
 
-  // Total overall physical cards across binders and loose collection
+  // Total overall physical cards across binders
   const totalAllCardsCount = useMemo(() => {
     let count = 0;
     binders.forEach((b) => {
       count += Object.keys(b.cards).length;
     });
-    looseCards.forEach((l) => {
-      count += l.quantity || 1;
-    });
     return count;
-  }, [binders, looseCards]);
+  }, [binders]);
 
   // Open Create Binder Modal
   const handleOpenCreateBinder = () => {
@@ -184,82 +159,12 @@ export default function App() {
       b.id === binderId ? { ...b, cards: newCards, updatedAt: Date.now() } : b
     );
     handleUpdateBinders(nextList);
-
-    // Add back to loose cards collection
-    const looseCard = {
-      ...cardToRemove,
-      id: `loose-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-      quantity: 1,
-    };
-    handleUpdateLooseCards([...looseCards, looseCard]);
-
-    showToast(`Carta removida do bolso #${slotIndex + 1} e movida para coleção avulsa.`);
+    showToast(`Carta "${cardToRemove.name}" removida do bolso #${slotIndex + 1}.`);
   };
 
   // Delete card from OverallCardList
   const handleDeleteOverallCard = (item: AggregateCardItem) => {
-    if (item.sourceType === 'binder' && item.binderId && item.slotIndex !== undefined) {
-      handleRemoveCardFromBinder(item.binderId, item.slotIndex);
-    } else if (item.sourceType === 'loose') {
-      const newLoose = looseCards
-        .map((l) => {
-          if (l.id === item.card.id) {
-            return { ...l, quantity: (l.quantity || 1) - 1 };
-          }
-          return l;
-        })
-        .filter((l) => (l.quantity || 1) > 0);
-      handleUpdateLooseCards(newLoose);
-      showToast(`Carta "${item.card.name}" removida da coleção.`);
-    }
-  };
-
-
-  // Clone a card inside active binder (duplicate to next empty pocket)
-  const handleCloneCardInBinder = (cardToClone: BinderCard, sourceSlot: number) => {
-    if (!activeBinder) return;
-
-    const capacity = activeBinder.totalPages * 9;
-    let targetSlot = -1;
-
-    // Search for the first empty pocket
-    for (let i = 0; i < capacity; i++) {
-      if (i !== sourceSlot && !activeBinder.cards[i]) {
-        targetSlot = i;
-        break;
-      }
-    }
-
-    let newTotalPages = activeBinder.totalPages;
-    let sheetAdded = false;
-
-    // If no empty slot exists in current sheets, add a new sheet (2 pages = 18 slots)
-    if (targetSlot === -1) {
-      targetSlot = capacity;
-      newTotalPages = activeBinder.totalPages + 2;
-      sheetAdded = true;
-    }
-
-    const clonedCard: BinderCard = {
-      ...cardToClone,
-      id: `card-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-      addedAt: Date.now(),
-    };
-
-    const newCards = { ...activeBinder.cards, [targetSlot]: clonedCard };
-
-    handleUpdateActiveBinder({
-      ...activeBinder,
-      totalPages: newTotalPages,
-      cards: newCards,
-      updatedAt: Date.now(),
-    });
-
-    showToast(
-      `Carta "${cardToClone.name}" clonada com sucesso para o bolso #${targetSlot + 1}!${
-        sheetAdded ? ' (+1 folha nova criada)' : ''
-      }`
-    );
+    handleRemoveCardFromBinder(item.binderId, item.slotIndex);
   };
 
   // Save selected API card(s) into active binder slots
@@ -315,7 +220,7 @@ export default function App() {
   };
 
   // Jump from Overall Card List directly into a binder
-  const handleNavigateToBinder = (binderId: string) => {
+  const handleNavigateToBinder = (binderId: string, slotIndex?: number) => {
     setActiveBinderId(binderId);
     setActiveTab('binders');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -324,17 +229,9 @@ export default function App() {
   // Handle Full JSON Backup Restoration
   const handleImportFullBackup = (data: {
     binders: Binder[];
-    looseCards?: LooseCard[];
-    decks?: Deck[];
   }) => {
     handleUpdateBinders(data.binders);
-    if (data.looseCards) {
-      handleUpdateLooseCards(data.looseCards);
-    }
-    if (data.decks) {
-      handleUpdateDecks(data.decks);
-    }
-    showToast('Backup do BinderDex restaurado com sucesso!');
+    showToast('Backup de fichários do BinderDex restaurado com sucesso!');
   };
 
   return (
@@ -355,7 +252,6 @@ export default function App() {
         }}
         bindersCount={binders.length}
         allCardsCount={totalAllCardsCount}
-        decksCount={decks.length}
         searchQuery={binderSearch}
         onSearchChange={(query) => {
           setBinderSearch(query);
@@ -402,26 +298,12 @@ export default function App() {
         )}
 
         {activeTab === 'all-cards' && (
-          // View 2: Overall Collection Card List (Binders + Loose Cards)
+          // View 2: Overall Collection Card List (All Cards in Binders)
           <OverallCardList
             binders={binders}
-            looseCards={looseCards}
-            onUpdateLooseCards={handleUpdateLooseCards}
             onNavigateToBinder={handleNavigateToBinder}
             onViewCard={(card, slotIndex) => setZoomConfig({ card, slotIndex: slotIndex ?? null })}
             onDeleteCard={handleDeleteOverallCard}
-            showToast={showToast}
-          />
-        )}
-
-        {activeTab === 'decks' && (
-          // View 3: Deck Builder
-          <DeckBuilder
-            decks={decks}
-            onUpdateDecks={handleUpdateDecks}
-            binders={binders}
-            looseCards={looseCards}
-            onViewCard={(card) => setZoomConfig({ card, slotIndex: null })}
             showToast={showToast}
           />
         )}
@@ -430,8 +312,6 @@ export default function App() {
       {/* Footer with full Backup JSON Export / Import */}
       <Footer
         binders={binders}
-        looseCards={looseCards}
-        decks={decks}
         onImportSuccess={handleImportFullBackup}
       />
 
@@ -468,9 +348,6 @@ export default function App() {
         onClose={() => setZoomConfig({ card: null, slotIndex: null })}
         onChangeCard={zoomConfig.slotIndex !== null ? handleEditCardInSlot : undefined}
         onDeleteCard={zoomConfig.slotIndex !== null ? handleDeleteCardInSlot : undefined}
-        onCloneCard={
-          activeBinder && zoomConfig.slotIndex !== null ? handleCloneCardInBinder : undefined
-        }
       />
 
       {/* Floating Notification Toast */}

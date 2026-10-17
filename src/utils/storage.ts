@@ -8,48 +8,34 @@ const LEGACY_STORAGE_KEYS = [
   'tcg_virtual_binders_data',
 ];
 
-const DEFAULT_SAMPLE_IDS = new Set([
-  'binder-pokemon-vintage',
-  'binder-magic-commander',
-  'binder-yugioh-classics',
-]);
-
-export const SAMPLE_BINDERS: Binder[] = [];
-
 export function loadBindersFromStorage(): Binder[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
-        // Remove any default sample binders if they somehow persisted
-        const cleaned = parsed.filter((b: Binder) => !DEFAULT_SAMPLE_IDS.has(b.id));
-        if (cleaned.length !== parsed.length) {
-          saveBindersToStorage(cleaned);
-        }
-        return cleaned;
+        return parsed;
       }
     }
 
-    // Check legacy storage keys and migrate any custom user binders, discarding default demo binders
+    // Try legacy keys if primary key is absent
     for (const legacyKey of LEGACY_STORAGE_KEYS) {
       const legacyRaw = localStorage.getItem(legacyKey);
       if (legacyRaw) {
         try {
           const parsed = JSON.parse(legacyRaw);
-          if (Array.isArray(parsed)) {
-            const userBinders = parsed.filter((b: Binder) => !DEFAULT_SAMPLE_IDS.has(b.id));
-            saveBindersToStorage(userBinders);
-            localStorage.removeItem(legacyKey);
-            return userBinders;
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            // Migrate to primary key
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+            return parsed;
           }
         } catch {
-          // ignore parsing error on legacy key
+          // ignore error in legacy key
         }
       }
     }
 
-    saveBindersToStorage([]);
+    // Return empty list if nothing saved
     return [];
   } catch (err) {
     console.error('Failed to load binders from storage:', err);
@@ -86,13 +72,17 @@ export function exportBindersJson(binders: Binder[]): void {
   downloadAnchor.remove();
 }
 
-export function importBindersJson(jsonString: string): Binder[] {
+export function importBindersJson(jsonString: string): {
+  binders: Binder[];
+} {
   const parsed = JSON.parse(jsonString);
   if (Array.isArray(parsed)) {
-    return parsed;
+    return { binders: parsed };
   }
   if (parsed && typeof parsed === 'object' && Array.isArray(parsed.binders)) {
-    return parsed.binders;
+    return {
+      binders: parsed.binders,
+    };
   }
   throw new Error('Formato inválido. O arquivo precisa conter um backup válido de fichários.');
 }

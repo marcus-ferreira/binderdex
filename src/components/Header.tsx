@@ -1,7 +1,7 @@
 import React from 'react';
-import { BookOpen, Search, Plus, Layers, Swords } from 'lucide-react';
+import { BookOpen, Layers } from 'lucide-react';
 
-export type AppNavTab = 'binders' | 'all-cards' | 'decks';
+export type AppNavTab = 'binders' | 'all-cards';
 
 interface HeaderProps {
   onGoHome: () => void;
@@ -9,7 +9,6 @@ interface HeaderProps {
   onChangeTab: (tab: AppNavTab) => void;
   bindersCount: number;
   allCardsCount: number;
-  decksCount: number;
   searchQuery?: string;
   onSearchChange?: (query: string) => void;
   onOpenNewBinderModal: () => void;
@@ -22,7 +21,6 @@ export const Header: React.FC<HeaderProps> = ({
   onChangeTab,
   bindersCount,
   allCardsCount,
-  decksCount,
   searchQuery = '',
   onSearchChange,
   onOpenNewBinderModal,
@@ -63,12 +61,6 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <BookOpen className="w-3.5 h-3.5" />
             <span>Fichários</span>
-            <span
-              className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
-                activeTab === 'binders' ? 'bg-indigo-700/80 text-white' : 'bg-slate-800 text-slate-400'
-              }`}
-            >
-            </span>
           </button>
 
           <button
@@ -82,31 +74,6 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <Layers className="w-3.5 h-3.5" />
             <span>Coleção Geral</span>
-            <span
-              className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
-                activeTab === 'all-cards' ? 'bg-indigo-700/80 text-white' : 'bg-slate-800 text-slate-400'
-              }`}
-            >
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => onChangeTab('decks')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-              activeTab === 'decks'
-                ? 'bg-indigo-600 text-white font-semibold shadow-md shadow-indigo-600/20'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
-            }`}
-          >
-            <Swords className="w-3.5 h-3.5" />
-            <span>Decks</span>
-            <span
-              className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
-                activeTab === 'decks' ? 'bg-indigo-700/80 text-white' : 'bg-slate-800 text-slate-400'
-              }`}
-            >
-            </span>
           </button>
         </nav>
 

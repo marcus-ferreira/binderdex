@@ -1,25 +1,21 @@
 import React, { useRef } from 'react';
 import { Download, Upload } from 'lucide-react';
-import { Binder, LooseCard, Deck } from '../types/binder';
+import { Binder } from '../types/binder';
 import { exportBindersJson, importBindersJson } from '../utils/storage';
 
 interface FooterProps {
   binders: Binder[];
-  looseCards?: LooseCard[];
-  decks?: Deck[];
-  onImportSuccess: (data: { binders: Binder[]; looseCards?: LooseCard[]; decks?: Deck[] }) => void;
+  onImportSuccess: (data: { binders: Binder[] }) => void;
 }
 
 export const Footer: React.FC<FooterProps> = ({
   binders,
-  looseCards = [],
-  decks = [],
   onImportSuccess,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleExport = () => {
-    exportBindersJson(binders, looseCards, decks);
+    exportBindersJson(binders);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -46,8 +42,6 @@ export const Footer: React.FC<FooterProps> = ({
 
         onImportSuccess({
           binders: mergedBinders,
-          looseCards: importedData.looseCards,
-          decks: importedData.decks,
         });
       } catch (err: unknown) {
         console.error('Falha ao importar backup JSON:', err);

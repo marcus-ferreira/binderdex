@@ -5,7 +5,6 @@ import {
   ArrowLeft,
   Edit3,
   BookOpen,
-  Copy,
 } from 'lucide-react';
 import { Binder, BinderCard, SUPPORTED_GAMES } from '../types/binder';
 import { BinderCardPocket } from './BinderCardPocket';
@@ -31,9 +30,6 @@ export const BinderSpread: React.FC<BinderSpreadProps> = ({
   onDeleteCard,
 }) => {
   const [spreadIndex, setSpreadIndex] = useState(0);
-
-  // Clone card mode state (duplicate cards when dragged to empty pocket)
-  const [cloneMode, setCloneMode] = useState(false);
 
   // Drag-and-drop auto-flip state
   const [isDraggingCard, setIsDraggingCard] = useState(false);
@@ -185,21 +181,21 @@ export const BinderSpread: React.FC<BinderSpreadProps> = ({
 
     if (!sourceCard) return;
 
-    const shouldClone = cloneMode || isCloneIntent;
-
-    // CLONE: duplicate the card into the empty pocket!
-    if (shouldClone && !targetCard) {
-      const clonedCard: BinderCard = {
-        ...sourceCard,
-        id: `card-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-        addedAt: Date.now(),
-      };
-      newCards[targetIndex] = clonedCard;
-      onUpdateBinder({
-        ...binder,
-        cards: newCards,
-        updatedAt: Date.now(),
-      });
+    // CLONE: duplicate the card into the empty pocket when dragging with Ctrl/Alt!
+    if (isCloneIntent) {
+      if (!targetCard) {
+        const clonedCard: BinderCard = {
+          ...sourceCard,
+          id: `card-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+          addedAt: Date.now(),
+        };
+        newCards[targetIndex] = clonedCard;
+        onUpdateBinder({
+          ...binder,
+          cards: newCards,
+          updatedAt: Date.now(),
+        });
+      }
       return;
     }
 
@@ -243,23 +239,8 @@ export const BinderSpread: React.FC<BinderSpreadProps> = ({
             <span>Voltar aos Fichários</span>
           </button>
 
-          {/* Right: Clone toggle, Edit Binder button next to Page Selector */}
+          {/* Right: Edit Binder button next to Page Selector */}
           <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-            {/* Clone mode toggle */}
-            <button
-              type="button"
-              onClick={() => setCloneMode((prev) => !prev)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-all cursor-pointer shadow-sm ${
-                cloneMode
-                  ? 'bg-purple-950/80 border-purple-500 text-purple-200 ring-2 ring-purple-500/30 font-semibold'
-                  : 'bg-slate-900/90 border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800'
-              }`}
-              title="Modo Clonar: arraste uma carta para um bolso vazio para duplicá-la (ou segure Ctrl/Alt ao arrastar)"
-            >
-              <Copy className={`w-3.5 h-3.5 ${cloneMode ? 'text-purple-400' : 'text-slate-400'}`} />
-              <span>{cloneMode ? 'Modo Clonar: Ativo' : 'Clonar Carta'}</span>
-            </button>
-
             <button
               type="button"
               onClick={() => onEditBinderDetails(binder)}
@@ -528,7 +509,6 @@ export const BinderSpread: React.FC<BinderSpreadProps> = ({
                             slotIndex={absoluteSlot}
                             displayNumber={absoluteSlot + 1}
                             card={binder.cards[absoluteSlot]}
-                            cloneMode={cloneMode}
                             onAddCard={onAddCardToSlot}
                             onViewCard={onViewCard}
                             onDropCard={handleDropCard}
@@ -632,7 +612,6 @@ export const BinderSpread: React.FC<BinderSpreadProps> = ({
                             slotIndex={absoluteSlot}
                             displayNumber={absoluteSlot + 1}
                             card={binder.cards[absoluteSlot]}
-                            cloneMode={cloneMode}
                             onAddCard={onAddCardToSlot}
                             onViewCard={onViewCard}
                             onDropCard={handleDropCard}
