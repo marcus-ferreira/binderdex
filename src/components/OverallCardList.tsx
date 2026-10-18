@@ -55,7 +55,7 @@ export const OverallCardList: React.FC<OverallCardListProps> = ({
   const [selectedSet, setSelectedSet] = useState<string>(() => {
     return localStorage.getItem('binderdex_overall_set') || 'all';
   });
-  const [sortBy, setSortBy] = useState<'recent' | 'name-asc' | 'name-desc' | 'game' | 'set' | 'binder'>(() => {
+  const [sortBy, setSortBy] = useState<'recent' | 'name-asc' | 'name-desc' | 'number-asc' | 'number-desc' | 'game' | 'set' | 'binder'>(() => {
     return (localStorage.getItem('binderdex_overall_sort') as any) || 'recent';
   });
   const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
@@ -182,6 +182,12 @@ export const OverallCardList: React.FC<OverallCardListProps> = ({
       }
       if (sortBy === 'name-desc') {
         return b.card.name.localeCompare(a.card.name);
+      }
+      if (sortBy === 'number-asc') {
+        return (a.card.collectorNumber || '').localeCompare(b.card.collectorNumber || '', undefined, { numeric: true });
+      }
+      if (sortBy === 'number-desc') {
+        return (b.card.collectorNumber || '').localeCompare(a.card.collectorNumber || '', undefined, { numeric: true });
       }
       if (sortBy === 'game') {
         return a.card.game.localeCompare(b.card.game);
@@ -346,6 +352,8 @@ export const OverallCardList: React.FC<OverallCardListProps> = ({
               <option value="recent" className="bg-slate-900 text-white">Mais Recentes</option>
               <option value="name-asc" className="bg-slate-900 text-white">Nome (A - Z)</option>
               <option value="name-desc" className="bg-slate-900 text-white">Nome (Z - A)</option>
+              <option value="number-asc" className="bg-slate-900 text-white">Número (Asc)</option>
+              <option value="number-desc" className="bg-slate-900 text-white">Número (Desc)</option>
               <option value="game" className="bg-slate-900 text-white">Por Jogo</option>
               <option value="set" className="bg-slate-900 text-white">Por Coleção</option>
               <option value="binder" className="bg-slate-900 text-white">Por Fichário</option>
