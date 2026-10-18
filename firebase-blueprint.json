@@ -1,0 +1,27 @@
+{
+  "entities": {
+    "Binder": {
+      "title": "Binder",
+      "description": "Virtual card binder belonging to a user",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 200 },
+        "game": { "type": "string", "maxLength": 50 },
+        "coverImageUrl": { "type": "string", "maxLength": 500 },
+        "ringColor": { "type": "string", "maxLength": 50 },
+        "totalPages": { "type": "integer" },
+        "cards": { "type": "object" },
+        "createdAt": { "type": "integer" },
+        "updatedAt": { "type": "integer" }
+      },
+      "required": ["id", "title", "totalPages", "cards", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/binders/{binderId}": {
+      "schema": "Binder",
+      "description": "Binders stored per user"
+    }
+  }
+}

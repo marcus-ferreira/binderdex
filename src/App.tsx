@@ -12,12 +12,22 @@ import {
   loadBindersFromStorage,
   saveBindersToStorage,
 } from './utils/storage';
+import { auth } from './lib/firebase';
+import { User, onAuthStateChanged } from 'firebase/auth';
+import {
+  loginWithGoogle,
+  logoutUser,
+  loadBindersFromFirestore,
+  saveBinderToFirestore,
+  deleteBinderFromFirestore,
+} from './services/firebaseSync';
 
 export default function App() {
   const [binders, setBinders] = useState<Binder[]>([]);
   const [activeBinderId, setActiveBinderId] = useState<string | null>(null);
   const [binderSearch, setBinderSearch] = useState('');
   const [activeTab, setActiveTab] = useState<AppNavTab>('binders');
+  const [user, setUser] = useState<User | null>(null);
 
   // Binder modal state (Create or Edit)
   const [isBinderModalOpen, setIsBinderModalOpen] = useState(false);
@@ -33,13 +43,15 @@ export default function App() {
     slotIndex: null,
   });
 
-  // Card zoom modal state (view, edit, delete, clone card)
+  // Card zoom modal state (view, edit, delete)
   const [zoomConfig, setZoomConfig] = useState<{
     card: BinderCard | null;
     slotIndex: number | null;
+    binderId?: string | null;
   }>({
     card: null,
     slotIndex: null,
+    binderId: null,
   });
 
   // Floating feedback toast notification
@@ -52,16 +64,89 @@ export default function App() {
     }, 4000);
   };
 
-  // Load from localStorage on mount
+  // Load from localStorage on mount & listen to Firebase Auth
   useEffect(() => {
     const loadedBinders = loadBindersFromStorage();
     setBinders(loadedBinders);
+
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      setUser(currentUser);
+      if (currentUser) {
+        try {
+          const remoteBinders = await loadBindersFromFirestore(currentUser.uid);
+          if (remoteBinders.length > 0) {
+            setBinders(remoteBinders);
+            saveBindersToStorage(remoteBinders);
+            showToast('Dados sincronizados com o Firestore!');
+          } else {
+            // Upload local binders to Firestore if remote is empty
+            if (loadedBinders.length > 0) {
+              for (const b of loadedBinders) {
+                await saveBinderToFirestore(currentUser.uid, b);
+              }
+              showToast('Fichários salvos na nuvem (Firestore)!');
+            }
+          }
+        } catch (err) {
+          console.error('Error syncing with Firestore:', err);
+        }
+      }
+    });
+
+    return () => unsubscribe();
   }, []);
 
-  // Sync state to localStorage
-  const handleUpdateBinders = (updatedList: Binder[]) => {
+  const handleLogin = async () => {
+    try {
+      const user = await loginWithGoogle();
+      if (user) {
+        showToast('Login realizado com sucesso!');
+      }
+    } catch (err) {
+      showToast('Erro ao realizar login com Google.');
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+      showToast('Você saiu da sua conta.');
+    } catch (err) {
+      showToast('Erro ao sair da conta.');
+    }
+  };
+
+  // Sync state to localStorage and Firestore
+  const handleUpdateBinders = async (updatedList: Binder[], deletedBinderId?: string) => {
     setBinders(updatedList);
     saveBindersToStorage(updatedList);
+
+    if (user) {
+      try {
+        if (deletedBinderId) {
+          await deleteBinderFromFirestore(user.uid, deletedBinderId);
+        }
+        for (const binder of updatedList) {
+          await saveBinderToFirestore(user.uid, binder);
+        }
+      } catch (err) {
+        console.error('Error syncing update to Firestore:', err);
+      }
+    }
+  };
+
+  const handleUpdateCardProperty = (binderId: string, slotIndex: number, updatedFields: Partial<BinderCard>) => {
+    const binder = binders.find((b) => b.id === binderId);
+    if (!binder) return;
+    const currentCard = binder.cards[slotIndex];
+    if (!currentCard) return;
+
+    const updatedCard = { ...currentCard, ...updatedFields };
+    const newCards = { ...binder.cards, [slotIndex]: updatedCard };
+    const nextList = binders.map((b) =>
+      b.id === binderId ? { ...b, cards: newCards, updatedAt: Date.now() } : b
+    );
+    handleUpdateBinders(nextList);
   };
 
   const activeBinder = binders.find((b) => b.id === activeBinderId) || null;
@@ -108,7 +193,7 @@ export default function App() {
     if (!targetBinder) return;
 
     const nextList = binders.filter((b) => b.id !== binderId);
-    handleUpdateBinders(nextList);
+    handleUpdateBinders(nextList, binderId);
     if (activeBinderId === binderId) {
       setActiveBinderId(null);
     }
@@ -196,30 +281,30 @@ export default function App() {
 
     const newCards = { ...activeBinder.cards };
     cards.forEach((card, idx) => {
-      newCards[startSlot + idx] = card;
+      newCards[startSlot + idx] = {
+        ...card,
+        condition: card.condition || 'NM',
+        language: card.language || 'PT',
+      };
     });
 
-    handleUpdateActiveBinder({
+    const updatedBinder: Binder = {
       ...activeBinder,
       totalPages: newTotalPages,
       cards: newCards,
       updatedAt: Date.now(),
-    });
+    };
 
+    handleUpdateActiveBinder(updatedBinder);
+    setCardSearchConfig({ isOpen: false, slotIndex: null });
     if (sheetsAdded > 0) {
-      showToast(
-        `${cards.length} ${cards.length === 1 ? 'carta alocada' : 'cartas alocadas'}! +${sheetsAdded} ${sheetsAdded === 1 ? 'folha nova foi criada' : 'folhas novas foram criadas'} automaticamente.`
-      );
-    } else if (cards.length > 1) {
-      showToast(
-        `${cards.length} cartas alocadas em sequência nos bolsos #${startSlot + 1} a #${startSlot + cards.length}!`
-      );
+      showToast(`${cards.length} carta(s) adicionada(s)! ${sheetsAdded} folha(s) adicionada(s) automaticamente.`);
     } else {
-      showToast(`Carta inserida com sucesso no bolso #${startSlot + 1}!`);
+      showToast(`${cards.length} carta(s) adicionada(s) com sucesso!`);
     }
   };
 
-  // Jump from Overall Card List directly into a binder
+  // Navigate directly to binder and slot from OverallCardList
   const handleNavigateToBinder = (binderId: string, slotIndex?: number) => {
     setActiveBinderId(binderId);
     setActiveTab('binders');
@@ -261,6 +346,9 @@ export default function App() {
         }}
         onOpenNewBinderModal={handleOpenCreateBinder}
         showSearch={true}
+        user={user}
+        onLogin={handleLogin}
+        onLogout={handleLogout}
       />
 
       {/* Main View Area */}
@@ -276,7 +364,7 @@ export default function App() {
                 onEditBinderDetails={handleOpenEditBinder}
                 onDeleteBinder={handleDeleteBinder}
                 onAddCardToSlot={handleAddCardToSlot}
-                onViewCard={(card, slotIndex) => setZoomConfig({ card, slotIndex })}
+                onViewCard={(card, slotIndex) => setZoomConfig({ card, slotIndex, binderId: activeBinder?.id })}
                 onDeleteCard={handleDeleteCardInSlot}
               />
             ) : (
@@ -302,8 +390,9 @@ export default function App() {
           <OverallCardList
             binders={binders}
             onNavigateToBinder={handleNavigateToBinder}
-            onViewCard={(card, slotIndex) => setZoomConfig({ card, slotIndex: slotIndex ?? null })}
+            onViewCard={(card, slotIndex, binderId) => setZoomConfig({ card, slotIndex: slotIndex ?? null, binderId: binderId || activeBinderId })}
             onDeleteCard={handleDeleteOverallCard}
+            onUpdateCardProperty={handleUpdateCardProperty}
             showToast={showToast}
           />
         )}
@@ -342,12 +431,14 @@ export default function App() {
 
       {/* Card Zoom & Inspect Modal */}
       <CardZoomModal
-        key={zoomConfig.card ? `${zoomConfig.card.id}-${zoomConfig.slotIndex ?? 'slot'}` : 'closed-zoom'}
+        key={zoomConfig.card ? `${zoomConfig.card.id}-${zoomConfig.binderId ?? 'b'}-${zoomConfig.slotIndex ?? 'slot'}` : 'closed-zoom'}
         card={zoomConfig.card}
         slotIndex={zoomConfig.slotIndex}
-        onClose={() => setZoomConfig({ card: null, slotIndex: null })}
+        binderId={zoomConfig.slotIndex !== null ? zoomConfig.binderId : null}
+        onClose={() => setZoomConfig({ card: null, slotIndex: null, binderId: null })}
         onChangeCard={zoomConfig.slotIndex !== null ? handleEditCardInSlot : undefined}
         onDeleteCard={zoomConfig.slotIndex !== null ? handleDeleteCardInSlot : undefined}
+        onUpdateCardProperty={handleUpdateCardProperty}
       />
 
       {/* Floating Notification Toast */}

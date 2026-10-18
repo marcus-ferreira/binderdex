@@ -1,5 +1,6 @@
 import React from 'react';
-import { BookOpen, Layers } from 'lucide-react';
+import { BookOpen, Layers, LogIn, LogOut, User as UserIcon } from 'lucide-react';
+import { User } from 'firebase/auth';
 
 export type AppNavTab = 'binders' | 'all-cards';
 
@@ -13,6 +14,9 @@ interface HeaderProps {
   onSearchChange?: (query: string) => void;
   onOpenNewBinderModal: () => void;
   showSearch?: boolean;
+  user: User | null;
+  onLogin: () => void;
+  onLogout: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -25,6 +29,9 @@ export const Header: React.FC<HeaderProps> = ({
   onSearchChange,
   onOpenNewBinderModal,
   showSearch = true,
+  user,
+  onLogin,
+  onLogout,
 }) => {
   return (
     <header className="sticky top-0 z-40 bg-[#0d111c]/95 backdrop-blur-md border-b border-slate-800/80">
@@ -77,8 +84,39 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
         </nav>
 
-        {/* Right empty placeholder to balance brand wordmark */}
-        <div className="w-20" />
+        {/* Right: Auth / User profile */}
+        <div className="flex items-center gap-2 shrink-0">
+          {user ? (
+            <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 rounded-xl px-2.5 py-1.5 text-xs">
+              {user.photoURL ? (
+                <img src={user.photoURL} alt={user.displayName || 'User'} className="w-6 h-6 rounded-full object-cover" />
+              ) : (
+                <UserIcon className="w-4 h-4 text-indigo-400" />
+              )}
+              <span className="text-slate-200 font-medium hidden sm:inline max-w-[120px] truncate">
+                {user.displayName || user.email}
+              </span>
+              <button
+                type="button"
+                onClick={onLogout}
+                className="p-1 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+                title="Sair da conta"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={onLogin}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 rounded-xl shadow-md transition-colors cursor-pointer"
+              title="Entrar com Google"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Entrar com Google</span>
+            </button>
+          )}
+        </div>
       </div>
     </header>
   );

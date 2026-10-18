@@ -1,26 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import { X, Sparkles, User, Edit3, Trash2 } from 'lucide-react';
-import { BinderCard } from '../types/binder';
+import { BinderCard, CARD_CONDITIONS, CARD_LANGUAGES } from '../types/binder';
 
 interface CardZoomModalProps {
   card: BinderCard | null;
   slotIndex: number | null;
+  binderId?: string | null;
   onClose: () => void;
   onChangeCard?: (slotIndex: number, card: BinderCard) => void;
   onDeleteCard?: (slotIndex: number) => void;
+  onUpdateCardProperty?: (binderId: string, slotIndex: number, updatedFields: Partial<BinderCard>) => void;
 }
 
 export const CardZoomModal: React.FC<CardZoomModalProps> = ({
   card,
   slotIndex,
+  binderId,
   onClose,
   onChangeCard,
   onDeleteCard,
+  onUpdateCardProperty,
 }) => {
   const [rotate, setRotate] = useState({ x: 0, y: 0 });
   const [imageError, setImageError] = useState(false);
   const [imgSrc, setImgSrc] = useState(card?.imageUrl || '');
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
+  const [condition, setCondition] = useState(card?.condition || 'NM');
+  const [language, setLanguage] = useState(card?.language || 'PT');
 
   // Reset state whenever a card is opened or changed
   useEffect(() => {
@@ -28,6 +34,8 @@ export const CardZoomModal: React.FC<CardZoomModalProps> = ({
     setImgSrc(card?.imageUrl || '');
     setRotate({ x: 0, y: 0 });
     setIsConfirmingDelete(false);
+    setCondition(card?.condition || 'NM');
+    setLanguage(card?.language || 'PT');
   }, [card?.id, card?.imageUrl, slotIndex]);
 
   if (!card) return null;
@@ -52,6 +60,20 @@ export const CardZoomModal: React.FC<CardZoomModalProps> = ({
       setImgSrc(imgSrc.replace('/high.png', '/low.webp'));
     } else {
       setImageError(true);
+    }
+  };
+
+  const handleConditionChange = (val: string) => {
+    setCondition(val);
+    if (slotIndex !== null && binderId && onUpdateCardProperty) {
+      onUpdateCardProperty(binderId, slotIndex, { condition: val });
+    }
+  };
+
+  const handleLanguageChange = (val: string) => {
+    setLanguage(val);
+    if (slotIndex !== null && binderId && onUpdateCardProperty) {
+      onUpdateCardProperty(binderId, slotIndex, { language: val });
     }
   };
 
@@ -120,7 +142,7 @@ export const CardZoomModal: React.FC<CardZoomModalProps> = ({
             </div>
           </div>
 
-          {/* Card Information Panel (Strictly required fields only) */}
+          {/* Card Information Panel */}
           <div className="space-y-4 text-left">
             <div>
               <div className="flex items-center gap-2 mb-1">
@@ -135,7 +157,7 @@ export const CardZoomModal: React.FC<CardZoomModalProps> = ({
                 )}
                 {slotIndex !== null && (
                   <span className="text-[10px] font-mono text-slate-500 ml-auto">
-                    Bolso #{slotIndex + 1}
+                    p.{Math.floor(slotIndex / 9) + 1} b.{(slotIndex % 9) + 1}
                   </span>
                 )}
               </div>
@@ -144,13 +166,13 @@ export const CardZoomModal: React.FC<CardZoomModalProps> = ({
               </h2>
             </div>
 
-            {/* Grid of properties (Only allowed fields) */}
+            {/* Grid of properties (including editable condition and language) */}
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div className="bg-slate-900/80 p-2.5 rounded-lg border border-slate-800">
                 <span className="text-[10px] text-slate-500 block uppercase font-mono">
                   Coleção
                 </span>
-                <span className="font-semibold text-slate-200">
+                <span className="font-semibold text-slate-200 truncate block">
                   {card.setName || 'Padrão'}
                 </span>
               </div>
@@ -168,7 +190,7 @@ export const CardZoomModal: React.FC<CardZoomModalProps> = ({
                 <span className="text-[10px] text-slate-500 block uppercase font-mono">
                   Raridade
                 </span>
-                <span className="font-semibold text-slate-200">
+                <span className="font-semibold text-slate-200 truncate block">
                   {card.rarity || 'Comum'}
                 </span>
               </div>
@@ -180,6 +202,40 @@ export const CardZoomModal: React.FC<CardZoomModalProps> = ({
                 <span className="font-semibold text-slate-200 capitalize">
                   {card.finish}
                 </span>
+              </div>
+
+              <div className="bg-slate-900/80 p-2.5 rounded-lg border border-slate-800">
+                <span className="text-[10px] text-slate-500 block uppercase font-mono">
+                  Conservação
+                </span>
+                <select
+                  value={condition}
+                  onChange={(e) => handleConditionChange(e.target.value)}
+                  className="w-full bg-transparent font-semibold text-slate-200 focus:outline-none focus:text-white cursor-pointer"
+                >
+                  {CARD_CONDITIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value} className="bg-slate-900 text-slate-200">
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="bg-slate-900/80 p-2.5 rounded-lg border border-slate-800">
+                <span className="text-[10px] text-slate-500 block uppercase font-mono">
+                  Idioma
+                </span>
+                <select
+                  value={language}
+                  onChange={(e) => handleLanguageChange(e.target.value)}
+                  className="w-full bg-transparent font-semibold text-slate-200 focus:outline-none focus:text-white cursor-pointer"
+                >
+                  {CARD_LANGUAGES.map((opt) => (
+                    <option key={opt.value} value={opt.value} className="bg-slate-900 text-slate-200">
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Sparkles, Trash2, Copy } from 'lucide-react';
+import { Plus, Sparkles, Copy } from 'lucide-react';
 import { BinderCard } from '../types/binder';
 
 interface BinderCardPocketProps {
@@ -21,7 +21,6 @@ export const BinderCardPocket: React.FC<BinderCardPocketProps> = ({
   onAddCard,
   onViewCard,
   onDropCard,
-  onDeleteCard,
   onDragStartCard,
   onDragEndCard,
 }) => {
@@ -169,22 +168,6 @@ export const BinderCardPocket: React.FC<BinderCardPocketProps> = ({
               </div>
             )}
 
-            {/* Quick delete button on hover */}
-            {onDeleteCard && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                  onDeleteCard(slotIndex);
-                }}
-                className="absolute top-1 left-1 z-30 p-1 rounded bg-black/80 hover:bg-rose-600 text-slate-300 hover:text-white opacity-0 group-hover:opacity-100 transition-all cursor-pointer shadow-md"
-                title={`Remover "${card.name}" deste bolso`}
-              >
-                <Trash2 className="w-3 h-3" />
-              </button>
-            )}
-
             {/* Card slot number mark */}
             <div className="absolute top-1 right-1 z-20 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
               <span className="px-1 py-0.2 text-[8px] font-mono text-slate-400 bg-black/60 rounded">
@@ -221,14 +204,12 @@ export const BinderCardPocket: React.FC<BinderCardPocketProps> = ({
                 )}
               </div>
             ) : (
-              <>
-                <div className="w-8 h-8 rounded-full border border-dashed border-slate-600/70 group-hover/btn:border-indigo-400 group-hover/btn:bg-indigo-500/10 flex items-center justify-center mb-1 transition-colors">
-                  <Plus className="w-4 h-4 text-slate-500 group-hover/btn:text-indigo-400 transition-colors" />
-                </div>
-                <span className="text-[10px] font-mono text-slate-600 group-hover/btn:text-slate-400">
+              <div className="flex flex-col items-center justify-center p-1 text-center group-hover/btn:scale-110 transition-transform">
+                <Plus className="w-4 h-4 text-slate-600 group-hover/btn:text-indigo-400 mb-0.5 transition-colors" />
+                <span className="text-[9px] font-mono text-slate-600 group-hover/btn:text-slate-300 transition-colors">
                   #{displayNumber}
                 </span>
-              </>
+              </div>
             )}
           </button>
         )}

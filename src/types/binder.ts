@@ -15,6 +15,30 @@ export const SUPPORTED_GAMES: GameOption[] = [
 
 export type CardFinish = 'normal' | 'foil' | 'holo' | 'reverse' | 'secret';
 
+export interface SelectOption {
+  value: string;
+  label: string;
+}
+
+export const CARD_CONDITIONS: SelectOption[] = [
+  { value: 'NM', label: 'NM (Near Mint)' },
+  { value: 'LP', label: 'LP (Lightly Played)' },
+  { value: 'MP', label: 'MP (Moderately Played)' },
+  { value: 'HP', label: 'HP (Heavily Played)' },
+  { value: 'DMG', label: 'DMG (Damaged)' },
+];
+
+export const CARD_LANGUAGES: SelectOption[] = [
+  { value: 'PT', label: 'PT (Português)' },
+  { value: 'EN', label: 'EN (English)' },
+  { value: 'JP', label: 'JP (Japonês)' },
+  { value: 'ES', label: 'ES (Espanhol)' },
+  { value: 'FR', label: 'FR (Francês)' },
+  { value: 'DE', label: 'DE (Alemão)' },
+  { value: 'IT', label: 'IT (Italiano)' },
+  { value: 'ZH', label: 'ZH (Chinês)' },
+];
+
 export interface BinderCard {
   id: string;
   name: string;
@@ -75,4 +99,3 @@ export interface Binder {
   createdAt: number;
   updatedAt: number;
 }
-

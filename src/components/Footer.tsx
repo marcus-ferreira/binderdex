@@ -54,9 +54,14 @@ export const Footer: React.FC<FooterProps> = ({
   return (
     <footer className="mt-auto border-t border-slate-800/80 bg-[#0a0d14] py-6 text-xs text-slate-500">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <p className="text-slate-500 text-xs">
-          BinderDex &middot; Catalogador de Cartas em Fichários Virtuais
-        </p>
+        <div className="flex items-center gap-2">
+          <p className="text-slate-500 text-xs">
+            BinderDex &middot; Catalogador de Cartas em Fichários Virtuais
+          </p>
+          <span className="px-1.5 py-0.5 text-[10px] font-mono bg-slate-900 border border-slate-800 text-slate-400 rounded">
+            v1.0.0
+          </span>
+        </div>
 
         {/* Export / Import Backup actions */}
         <div className="flex items-center gap-4 text-xs">
