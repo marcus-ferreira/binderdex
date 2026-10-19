@@ -450,37 +450,8 @@ export const OverallCardList: React.FC<OverallCardListProps> = ({
                       )}
                     </div>
 
-                    {/* Card Details */}
-                    <div className="mt-2 space-y-1">
-                      <div className="flex items-center justify-between gap-1">
-                        <span
-                          className={`px-1.5 py-0.5 text-[9px] font-mono uppercase font-bold rounded border ${badgeStyle.bg} ${badgeStyle.text} ${badgeStyle.border} truncate`}
-                        >
-                          {item.card.game}
-                        </span>
-                        <span className="text-[10px] font-mono text-slate-500 truncate">
-                          {item.card.collectorNumber || '—'}
-                        </span>
-                      </div>
-
-                      <h4
-                        onClick={() => onViewCard(item.card, item.slotIndex, item.binderId)}
-                        className="text-xs font-bold text-white truncate cursor-pointer hover:text-indigo-400 transition-colors"
-                        title={item.card.name}
-                      >
-                        {item.card.name}
-                      </h4>
-
-                      <div className="flex items-center justify-between text-[10px] text-slate-400">
-                        <span className="truncate" title={item.card.setName}>{item.card.setName || 'Coleção'}</span>
-                        <span className="font-mono text-slate-300 shrink-0">
-                          {[item.card.condition || 'NM', item.card.language || 'PT'].filter(Boolean).join(' • ')}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Location Tag: direct link to Binder & relative page/pocket (e.g. p.5 b.2) */}
-                    <div className="mt-2.5 pt-2 border-t border-slate-800/80">
+                    {/* Location Tag: direct link to Binder & relative page/pocket (green info) */}
+                    <div className="mt-2">
                       <button
                         type="button"
                         onClick={() => onNavigateToBinder(item.binderId, item.slotIndex)}
@@ -501,14 +472,14 @@ export const OverallCardList: React.FC<OverallCardListProps> = ({
               })}
             </div>
           ) : (
-            /* List View (without images) with inline editable condition and language */
+            /* List View (read-only finish, condition, language - separated columns) */
             <div className="bg-[#121624] border border-slate-800 rounded-xl overflow-hidden shadow-xl">
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="border-b border-slate-800 text-[10px] font-mono uppercase text-slate-400 bg-slate-900/60 select-none">
                       <th
-                        className="py-3 px-4 cursor-pointer hover:text-white transition-colors"
+                        className="py-3 px-3 cursor-pointer hover:text-white transition-colors"
                         onClick={() => setSortBy(sortBy === 'game' ? 'recent' : 'game')}
                         title="Ordenar por Jogo"
                       >
@@ -518,7 +489,7 @@ export const OverallCardList: React.FC<OverallCardListProps> = ({
                         </div>
                       </th>
                       <th
-                        className="py-3 px-4 cursor-pointer hover:text-white transition-colors"
+                        className="py-3 px-3 cursor-pointer hover:text-white transition-colors"
                         onClick={() => setSortBy(sortBy === 'name-asc' ? 'name-desc' : 'name-asc')}
                         title="Ordenar por Nome (A-Z / Z-A)"
                       >
@@ -529,20 +500,32 @@ export const OverallCardList: React.FC<OverallCardListProps> = ({
                         </div>
                       </th>
                       <th
-                        className="py-3 px-4 cursor-pointer hover:text-white transition-colors"
+                        className="py-3 px-3 cursor-pointer hover:text-white transition-colors"
+                        onClick={() => setSortBy(sortBy === 'set' ? 'recent' : 'set')}
+                        title="Ordenar por Coleção"
+                      >
+                        <div className="flex items-center gap-1">
+                          <span>Coleção</span>
+                          {sortBy === 'set' && <span className="text-indigo-400">●</span>}
+                        </div>
+                      </th>
+                      <th
+                        className="py-3 px-3 cursor-pointer hover:text-white transition-colors"
                         onClick={() => setSortBy(sortBy === 'number-asc' ? 'number-desc' : 'number-asc')}
                         title="Ordenar por Número (Crescente / Decrescente)"
                       >
                         <div className="flex items-center gap-1">
-                          <span>Coleção / Nº</span>
+                          <span>Número</span>
                           {sortBy === 'number-asc' && <span className="text-indigo-400">↑</span>}
                           {sortBy === 'number-desc' && <span className="text-indigo-400">↓</span>}
                         </div>
                       </th>
-                      <th className="py-3 px-4">Raridade / Acabamento</th>
-                      <th className="py-3 px-4">Conservação / Idioma</th>
+                      <th className="py-3 px-3">Raridade</th>
+                      <th className="py-3 px-3">Acabamento</th>
+                      <th className="py-3 px-3">Conservação</th>
+                      <th className="py-3 px-3">Idioma</th>
                       <th
-                        className="py-3 px-4 cursor-pointer hover:text-white transition-colors"
+                        className="py-3 px-3 cursor-pointer hover:text-white transition-colors"
                         onClick={() => setSortBy(sortBy === 'binder' ? 'recent' : 'binder')}
                         title="Ordenar por Fichário"
                       >
@@ -551,105 +534,113 @@ export const OverallCardList: React.FC<OverallCardListProps> = ({
                           {sortBy === 'binder' && <span className="text-indigo-400">●</span>}
                         </div>
                       </th>
-                      <th className="py-3 px-4 text-right">Ações</th>
+                      <th className="py-3 px-3 text-right">Ações</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/60 text-xs">
                     {sortedCards.map((item) => {
                       const badgeStyle = GAME_BADGE_COLORS[item.card.game] || GAME_BADGE_COLORS.pokemon;
+                      const finishLabel = CARD_FINISHES.find((f) => f.value === item.card.finish)?.label || 'Normal';
                       return (
                         <tr key={item.id} className="hover:bg-slate-900/40 transition-colors group">
-                          <td className="py-2.5 px-4">
+                          {/* 1. Jogo */}
+                          <td className="py-2.5 px-3">
                             <span className={`px-2 py-0.5 text-[10px] font-mono uppercase font-bold rounded border ${badgeStyle.bg} ${badgeStyle.text} ${badgeStyle.border}`}>
                               {item.card.game}
                             </span>
                           </td>
-                          <td className="py-2.5 px-4 font-bold text-white">
+
+                          {/* 2. Carta (clique para abrir detalhes e editar) */}
+                          <td className="py-2.5 px-3 font-bold text-white">
                             <button
                               type="button"
                               onClick={() => onViewCard(item.card, item.slotIndex, item.binderId)}
-                              className="hover:text-indigo-400 text-left transition-colors cursor-pointer"
+                              className="hover:text-indigo-400 text-left transition-colors cursor-pointer group-hover:text-indigo-300"
+                              title="Clique para ver e editar detalhes da carta"
                             >
                               {item.card.name}
                             </button>
                           </td>
-                          <td className="py-2.5 px-4 text-slate-300">
-                            <div>{item.card.setName || '—'}</div>
-                            <div className="text-[10px] font-mono text-slate-500">{item.card.collectorNumber || '—'}</div>
+
+                          {/* 3. Coleção */}
+                          <td className="py-2.5 px-3 text-slate-300">
+                            <span className="truncate block max-w-[170px]" title={item.card.setName || '—'}>
+                              {item.card.setName || '—'}
+                            </span>
                           </td>
-                          <td className="py-2.5 px-4 text-slate-300">
-                            <div>{item.card.rarity || 'Comum'}</div>
-                            <select
-                              value={item.card.finish || 'normal'}
-                              onChange={(e) => {
-                                if (onUpdateCardProperty) {
-                                  onUpdateCardProperty(item.binderId, item.slotIndex, {
-                                    finish: e.target.value as CardFinish,
-                                  });
-                                }
-                              }}
-                              className="mt-0.5 px-1.5 py-0.5 text-xs bg-slate-900 border border-slate-700/80 rounded text-slate-200 focus:outline-none focus:border-indigo-500 cursor-pointer"
-                              title="Acabamento da carta"
+
+                          {/* 4. Número */}
+                          <td className="py-2.5 px-3 text-slate-400 font-mono text-[11px] whitespace-nowrap">
+                            {item.card.collectorNumber || '—'}
+                          </td>
+
+                          {/* 5. Raridade */}
+                          <td className="py-2.5 px-3 text-slate-300">
+                            <span className="truncate block max-w-[120px]" title={item.card.rarity || 'Comum'}>
+                              {item.card.rarity || 'Comum'}
+                            </span>
+                          </td>
+
+                          {/* 6. Acabamento (apenas leitura) */}
+                          <td className="py-2.5 px-3 whitespace-nowrap">
+                            {item.card.finish && item.card.finish !== 'normal' ? (
+                              <span
+                                className={`px-2 py-0.5 text-[10px] font-mono font-semibold rounded border inline-flex items-center gap-1 ${
+                                  item.card.finish === 'foil'
+                                    ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                                    : item.card.finish === 'holo'
+                                    ? 'bg-purple-500/15 text-purple-300 border-purple-500/30'
+                                    : item.card.finish === 'reverse'
+                                    ? 'bg-blue-500/15 text-blue-300 border-blue-500/30'
+                                    : 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40'
+                                }`}
+                              >
+                                {finishLabel}
+                              </span>
+                            ) : (
+                              <span className="text-slate-400 text-[11px]">Normal</span>
+                            )}
+                          </td>
+
+                          {/* 7. Conservação (apenas leitura) */}
+                          <td className="py-2.5 px-3 font-mono whitespace-nowrap">
+                            <span
+                              className="px-2 py-0.5 text-[10px] font-semibold rounded bg-slate-900 border border-slate-700/80 text-slate-200"
+                              title={CARD_CONDITIONS.find((c) => c.value === item.card.condition)?.label || item.card.condition || 'Near Mint'}
                             >
-                              {CARD_FINISHES.map((opt) => (
-                                <option key={opt.value} value={opt.value} className="bg-slate-900 text-slate-200">
-                                  {opt.label}
-                                </option>
-                              ))}
-                            </select>
+                              {item.card.condition || 'NM'}
+                            </span>
                           </td>
-                          <td className="py-2.5 px-4 text-slate-300 font-mono">
-                            <div className="flex items-center gap-1.5">
-                              <select
-                                value={item.card.condition || 'NM'}
-                                onChange={(e) => {
-                                  if (onUpdateCardProperty) {
-                                    onUpdateCardProperty(item.binderId, item.slotIndex, { condition: e.target.value });
-                                  }
-                                }}
-                                className="w-20 px-1.5 py-1 text-xs bg-slate-900 border border-slate-700/80 rounded text-slate-200 focus:outline-none focus:border-indigo-500 cursor-pointer"
-                                title="Estado de conservação"
-                              >
-                                {CARD_CONDITIONS.map((opt) => (
-                                  <option key={opt.value} value={opt.value} className="bg-slate-900 text-slate-200">
-                                    {opt.value}
-                                  </option>
-                                ))}
-                              </select>
-                              <select
-                                value={item.card.language || 'PT'}
-                                onChange={(e) => {
-                                  if (onUpdateCardProperty) {
-                                    onUpdateCardProperty(item.binderId, item.slotIndex, { language: e.target.value });
-                                  }
-                                }}
-                                className="w-20 px-1.5 py-1 text-xs bg-slate-900 border border-slate-700/80 rounded text-slate-200 focus:outline-none focus:border-indigo-500 cursor-pointer"
-                                title="Idioma da carta"
-                              >
-                                {CARD_LANGUAGES.map((opt) => (
-                                  <option key={opt.value} value={opt.value} className="bg-slate-900 text-slate-200">
-                                    {opt.value}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
+
+                          {/* 8. Idioma (apenas leitura) */}
+                          <td className="py-2.5 px-3 font-mono whitespace-nowrap">
+                            <span
+                              className="px-2 py-0.5 text-[10px] font-semibold rounded bg-slate-900 border border-slate-700/80 text-slate-200"
+                              title={CARD_LANGUAGES.find((l) => l.value === item.card.language)?.label || item.card.language || 'Português'}
+                            >
+                              {item.card.language || 'PT'}
+                            </span>
                           </td>
-                          <td className="py-2.5 px-4">
+
+                          {/* 9. Fichário / Local */}
+                          <td className="py-2.5 px-3 whitespace-nowrap">
                             <button
                               type="button"
                               onClick={() => onNavigateToBinder(item.binderId, item.slotIndex)}
                               className="flex items-center gap-1.5 text-emerald-400 hover:text-emerald-300 font-medium transition-colors cursor-pointer"
-                              title={`Ir para o fichário "${item.binderTitle}"`}
+                              title={`Ir para o fichário "${item.binderTitle}", Página ${item.pageNumber}, Bolso ${item.pocketNumber}`}
                             >
                               <BookOpen className="w-3.5 h-3.5 shrink-0" />
-                              <span className="truncate max-w-[120px]">{item.binderTitle}</span>
+                              <span className="truncate max-w-[130px]">{item.binderTitle}</span>
                               <span className="font-mono text-[10px] bg-emerald-950/60 border border-emerald-800/60 px-1.5 py-0.5 rounded shrink-0">
                                 p.{item.pageNumber} b.{item.pocketNumber}
                               </span>
                             </button>
                           </td>
-                          <td className="py-2.5 px-4 text-right">
-                            <div className="flex items-center justify-end gap-2">
+
+                          {/* 10. Ações */}
+                          <td className="py-2.5 px-3 text-right whitespace-nowrap">
+                            <div className="flex items-center justify-end gap-1.5">
                               {onDeleteCard && (
                                 <button
                                   type="button"
@@ -659,7 +650,7 @@ export const OverallCardList: React.FC<OverallCardListProps> = ({
                                     }
                                   }}
                                   className="p-1.5 text-slate-400 hover:text-white bg-slate-800/80 hover:bg-rose-600 rounded-lg transition-colors cursor-pointer"
-                                  title="Remover carta"
+                                  title="Remover carta do fichário"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
                                 </button>

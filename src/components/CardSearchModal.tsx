@@ -808,7 +808,7 @@ export const CardSearchModal: React.FC<CardSearchModalProps> = ({
                 )}
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 gap-3">
                 {sortedResults.map((card) => {
                   const selectedIndex = selectedCards.findIndex((s) => s.apiId === card.apiId);
                   const isSelected = selectedIndex !== -1;
@@ -895,20 +895,20 @@ export const CardSearchModal: React.FC<CardSearchModalProps> = ({
                           <span>{card.collectorNumber}</span>
                         </div>
 
-                        {/* Editable Acabamento, Conservação e Idioma (mesmo tamanho e estilo) */}
+                        {/* Editable Acabamento, Conservação e Idioma em ordem vertical */}
                         <div
-                          className="pt-1.5 mt-1 border-t border-slate-800/80 grid grid-cols-3 gap-1.5"
+                          className="pt-2 mt-1.5 border-t border-slate-800/80 space-y-1.5 min-w-0"
                           onClick={(e) => e.stopPropagation()}
                         >
                           {/* Acabamento */}
-                          <div className="flex flex-col gap-0.5 min-w-0">
-                            <span className="text-[9px] text-slate-400 font-mono uppercase tracking-wider truncate">
+                          <div className="flex items-center justify-between gap-1.5 min-w-0">
+                            <span className="text-[9px] text-slate-400 font-mono uppercase tracking-wider font-semibold shrink-0">
                               Acabamento
                             </span>
                             <select
                               value={card.finish || 'normal'}
                               onChange={(e) => handleFinishChange(card.apiId, e.target.value as CardFinish)}
-                              className="w-full h-7 bg-slate-950 border border-slate-700/80 rounded px-1 text-[10px] font-medium text-slate-200 hover:border-slate-600 focus:outline-none focus:border-indigo-500 cursor-pointer truncate shadow-xs transition-colors"
+                              className="flex-1 min-w-0 h-6.5 bg-slate-950 border border-slate-700/80 hover:border-slate-500 focus:border-indigo-500 rounded px-1.5 text-[10px] font-medium text-slate-200 focus:outline-none cursor-pointer truncate shadow-xs transition-colors"
                               title={`Acabamento: ${card.finish || 'normal'}`}
                             >
                               {CARD_FINISHES.map((f) => (
@@ -920,38 +920,38 @@ export const CardSearchModal: React.FC<CardSearchModalProps> = ({
                           </div>
 
                           {/* Estado */}
-                          <div className="flex flex-col gap-0.5 min-w-0">
-                            <span className="text-[9px] text-slate-400 font-mono uppercase tracking-wider truncate">
+                          <div className="flex items-center justify-between gap-1.5 min-w-0">
+                            <span className="text-[9px] text-slate-400 font-mono uppercase tracking-wider font-semibold shrink-0">
                               Estado
                             </span>
                             <select
                               value={card.condition || 'NM'}
                               onChange={(e) => handleConditionChange(card.apiId, e.target.value)}
-                              className="w-full h-7 bg-slate-950 border border-slate-700/80 rounded px-1 text-[10px] font-medium text-slate-200 hover:border-slate-600 focus:outline-none focus:border-indigo-500 cursor-pointer truncate shadow-xs transition-colors"
+                              className="flex-1 min-w-0 h-6.5 bg-slate-950 border border-slate-700/80 hover:border-slate-500 focus:border-indigo-500 rounded px-1.5 text-[10px] font-medium text-slate-200 focus:outline-none cursor-pointer truncate shadow-xs transition-colors"
                               title={`Estado: ${card.condition || 'NM'}`}
                             >
                               {CARD_CONDITIONS.map((c) => (
                                 <option key={c.value} value={c.value} className="bg-slate-900 text-slate-200">
-                                  {c.value} ({c.label.split('(')[1]?.replace(')', '') || c.value})
+                                  {c.label}
                                 </option>
                               ))}
                             </select>
                           </div>
 
                           {/* Idioma */}
-                          <div className="flex flex-col gap-0.5 min-w-0">
-                            <span className="text-[9px] text-slate-400 font-mono uppercase tracking-wider truncate">
+                          <div className="flex items-center justify-between gap-1.5 min-w-0">
+                            <span className="text-[9px] text-slate-400 font-mono uppercase tracking-wider font-semibold shrink-0">
                               Idioma
                             </span>
                             <select
                               value={card.language || 'PT'}
                               onChange={(e) => handleLanguageChange(card.apiId, e.target.value)}
-                              className="w-full h-7 bg-slate-950 border border-slate-700/80 rounded px-1 text-[10px] font-medium text-slate-200 hover:border-slate-600 focus:outline-none focus:border-indigo-500 cursor-pointer truncate shadow-xs transition-colors"
+                              className="flex-1 min-w-0 h-6.5 bg-slate-950 border border-slate-700/80 hover:border-slate-500 focus:border-indigo-500 rounded px-1.5 text-[10px] font-medium text-slate-200 focus:outline-none cursor-pointer truncate shadow-xs transition-colors"
                               title={`Idioma: ${card.language || 'PT'}`}
                             >
                               {CARD_LANGUAGES.map((l) => (
                                 <option key={l.value} value={l.value} className="bg-slate-900 text-slate-200">
-                                  {l.value} ({l.label.split('(')[1]?.replace(')', '') || l.value})
+                                  {l.label}
                                 </option>
                               ))}
                             </select>
