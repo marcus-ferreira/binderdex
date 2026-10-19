@@ -13,6 +13,8 @@ export interface ApiCardResult {
   artist: string;
   rawNumber: number; // For clean numerical sorting
   chronologicalIndex?: number; // Higher number means more recent release/expansion
+  condition?: string;
+  language?: string;
   origin?: 'api' | 'standalone' | 'binder';
   originalCardId?: string;
   sourceBinderId?: string;
@@ -77,7 +79,7 @@ function parseRawNumber(numStr?: string): number {
   return match ? parseInt(match[0], 10) : 999999;
 }
 
-// Year lookup table for known Pokémon sets
+// Comprehensive year lookup table for known Pokémon set codes
 const POKEMON_SET_YEAR_MAP: Record<string, number> = {
   // 2026
   '30th': 2026,
@@ -150,18 +152,269 @@ const POKEMON_SET_YEAR_MAP: Record<string, number> = {
   'swsh05': 2021,
   'swsh045': 2021,
   'swsh045sv': 2021,
+  // 2020
+  'swsh04': 2020,
+  'swsh035': 2020,
+  'swsh03': 2020,
+  'swsh02': 2020,
+  'swsh01': 2020,
+  'swshp': 2020,
+  // 2019
+  'sm12': 2019,
+  'sm115': 2019,
+  'sm11': 2019,
+  'sm10': 2019,
+  'sm09': 2019,
+  'det': 2019,
+  // 2018
+  'sm08': 2018,
+  'sm075': 2018,
+  'sm07': 2018,
+  'sm06': 2018,
+  'sm05': 2018,
+  // 2017
+  'sm04': 2017,
+  'sm035': 2017,
+  'sm03': 2017,
+  'sm02': 2017,
+  'sm01': 2017,
+  'smp': 2017,
+  // 2016
+  'xy12': 2016,
+  'xy11': 2016,
+  'xy10': 2016,
+  'g1': 2016,
+  'xy09': 2016,
+  // 2015
+  'xy08': 2015,
+  'xy07': 2015,
+  'dc01': 2015,
+  'xy06': 2015,
+  'xy05': 2015,
+  // 2014
+  'xy04': 2014,
+  'xy03': 2014,
+  'xy02': 2014,
+  'xy01': 2014,
+  'xyp': 2014,
+  // 2013
+  'bw11': 2013,
+  'bw10': 2013,
+  'bw09': 2013,
+  'bw08': 2013,
+  // 2012
+  'bw07': 2012,
+  'bw06': 2012,
+  'bw05': 2012,
+  'bw04': 2012,
+  // 2011
+  'bw03': 2011,
+  'bw02': 2011,
+  'bw01': 2011,
+  'bwp': 2011,
+  'col1': 2011,
+  // 2010
+  'hgss4': 2010,
+  'hgss3': 2010,
+  'hgss2': 2010,
+  'hgss1': 2010,
+  'hgssp': 2010,
+  // 2009
+  'pl4': 2009,
+  'pl3': 2009,
+  'pl2': 2009,
+  'pl1': 2009,
+  // 2008
+  'dp7': 2008,
+  'dp6': 2008,
+  'dp5': 2008,
+  'dp4': 2008,
+  // 2007
+  'dp3': 2007,
+  'dp2': 2007,
+  'dp1': 2007,
+  'dpp': 2007,
+  'ex16': 2007,
+  // 2006
+  'ex15': 2006,
+  'ex14': 2006,
+  'ex13': 2006,
+  'ex12': 2006,
+  // 2005
+  'ex11': 2005,
+  'ex10': 2005,
+  'ex09': 2005,
+  'ex08': 2005,
+  // 2004
+  'ex07': 2004,
+  'ex06': 2004,
+  'ex05': 2004,
+  'ex04': 2004,
+  // 2003
+  'ex03': 2003,
+  'ex02': 2003,
+  'ex01': 2003,
+  'ecard3': 2003,
+  'ecard2': 2003,
+  // 2002
+  'ecard1': 2002,
+  'neo4': 2002,
+  'lc': 2002,
+  // 2001
+  'neo3': 2001,
+  'neo2': 2001,
+  // 2000
+  'neo1': 2000,
+  'gym2': 2000,
+  'gym1': 2000,
+  'base5': 2000,
+  'base4': 2000,
+  // 1999
+  'base3': 1999,
+  'base2': 1999,
+  'base1': 1999,
+  'basep': 1999,
 };
 
+// Fallback name-to-year map for Pokémon sets
+const POKEMON_NAME_YEAR_MAP: Record<string, number> = {
+  'base set': 1999,
+  'jungle': 1999,
+  'fossil': 1999,
+  'base set 2': 2000,
+  'team rocket': 2000,
+  'gym heroes': 2000,
+  'gym challenge': 2000,
+  'neo genesis': 2000,
+  'neo discovery': 2001,
+  'neo revelation': 2001,
+  'neo destiny': 2002,
+  'legendary collection': 2002,
+  'expedition base set': 2002,
+  'aquapolis': 2003,
+  'skyridge': 2003,
+  'ruby & sapphire': 2003,
+  'sandstorm': 2003,
+  'dragon': 2003,
+  'team magma vs team aqua': 2004,
+  'hidden legends': 2004,
+  'firered & leafgreen': 2004,
+  'team rocket returns': 2004,
+  'deoxys': 2005,
+  'emerald': 2005,
+  'unseen forces': 2005,
+  'delta species': 2005,
+  'legend maker': 2006,
+  'holon phantoms': 2006,
+  'crystal guardians': 2006,
+  'dragon frontiers': 2006,
+  'power keepers': 2007,
+  'diamond & pearl': 2007,
+  'mysterious treasures': 2007,
+  'secret wonders': 2007,
+  'great encounters': 2008,
+  'majestic dawn': 2008,
+  'legends awakened': 2008,
+  'stormfront': 2008,
+  'platinum': 2009,
+  'rising rivals': 2009,
+  'supreme victors': 2009,
+  'arceus': 2009,
+  'heartgold & soulsilver': 2010,
+  'unleashed': 2010,
+  'undaunted': 2010,
+  'triumphant': 2010,
+  'call of legends': 2011,
+  'black & white': 2011,
+  'noble victories': 2011,
+  'emerging powers': 2011,
+  'next destinies': 2012,
+  'dark explorers': 2012,
+  'dragons exalted': 2012,
+  'boundaries crossed': 2012,
+  'plasma storm': 2013,
+  'plasma freeze': 2013,
+  'plasma blast': 2013,
+  'legendary treasures': 2013,
+  'xy': 2014,
+  'flashfire': 2014,
+  'furious fists': 2014,
+  'phantom forces': 2014,
+  'primal clash': 2015,
+  'roaring skies': 2015,
+  'ancient origins': 2015,
+  'breakthrough': 2015,
+  'breakpoint': 2016,
+  'generations': 2016,
+  'fates collide': 2016,
+  'steam siege': 2016,
+  'evolutions': 2016,
+  'sun & moon': 2017,
+  'guardians rising': 2017,
+  'burning shadows': 2017,
+  'shining legends': 2017,
+  'crimson invasion': 2017,
+  'ultra prism': 2018,
+  'forbidden light': 2018,
+  'celestial storm': 2018,
+  'dragon majesty': 2018,
+  'lost thunder': 2018,
+  'team up': 2019,
+  'unbroken bonds': 2019,
+  'unified minds': 2019,
+  'hidden fates': 2019,
+  'cosmic eclipse': 2019,
+  'sword & shield': 2020,
+  'rebel clash': 2020,
+  'darkness ablaze': 2020,
+  'champion\'s path': 2020,
+  'vivid voltage': 2020,
+  'shining fates': 2021,
+  'battle styles': 2021,
+  'chilling reign': 2021,
+  'evolving skies': 2021,
+  'celebrations': 2021,
+  'fusion strike': 2021,
+  'brilliant stars': 2022,
+  'astral radiance': 2022,
+  'pokémon go': 2022,
+  'lost origin': 2022,
+  'silver tempest': 2022,
+  'crown zenith': 2023,
+  'scarlet & violet': 2023,
+  'paldea evolved': 2023,
+  'obsidian flames': 2023,
+  '151': 2023,
+  'paradox rift': 2023,
+  'paldean fates': 2024,
+  'temporal forces': 2024,
+  'twilight masquerade': 2024,
+  'shrouded fable': 2024,
+  'stellar crown': 2024,
+  'surging sparks': 2024,
+  'prismatic evolutions': 2025,
+};
+
+export interface TcgdexSetItem {
+  id: string;
+  name: string;
+  releaseDate?: string;
+}
+
 // In-memory cache for tcgdex sets
-let tcgdexSetsCache: { id: string; name: string }[] | null = null;
-export async function fetchTcgdexSets(): Promise<{ id: string; name: string }[]> {
+let tcgdexSetsCache: TcgdexSetItem[] | null = null;
+export async function fetchTcgdexSets(): Promise<TcgdexSetItem[]> {
   if (tcgdexSetsCache && tcgdexSetsCache.length > 0) return tcgdexSetsCache;
   try {
     const res = await fetch('https://api.tcgdex.net/v2/en/sets');
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data)) {
-        tcgdexSetsCache = data.map((s: any) => ({ id: s.id, name: s.name }));
+        tcgdexSetsCache = data.map((s: any) => ({
+          id: s.id,
+          name: s.name,
+          releaseDate: s.releaseDate,
+        }));
         return tcgdexSetsCache;
       }
     }
@@ -183,7 +436,21 @@ export async function getPokemonSetOptions(): Promise<string[]> {
   const list: string[] = [];
 
   for (const s of reversed) {
-    const yr = POKEMON_SET_YEAR_MAP[s.id];
+    // 1. Check releaseDate string (e.g. "2024-03-22")
+    const dateMatch = s.releaseDate ? s.releaseDate.match(/\d{4}/) : null;
+    let yr: number | string | undefined = dateMatch ? dateMatch[0] : undefined;
+
+    // 2. Check set ID code map
+    if (!yr) {
+      yr = POKEMON_SET_YEAR_MAP[s.id] || POKEMON_SET_YEAR_MAP[s.id.toLowerCase()];
+    }
+
+    // 3. Check normalized name map
+    if (!yr) {
+      const lowerName = s.name.toLowerCase().trim();
+      yr = POKEMON_NAME_YEAR_MAP[lowerName];
+    }
+
     const label = yr ? `${s.name} (${yr})` : s.name;
     if (!seen.has(label)) {
       seen.add(label);
@@ -280,6 +547,8 @@ export async function searchCards(
           artist: c.artist || 'Artista MTG',
           rawNumber: parseRawNumber(c.collector_number),
           chronologicalIndex: chrono,
+          condition: 'NM',
+          language: 'PT',
         };
       });
 
@@ -357,6 +626,8 @@ export async function searchCards(
           artist: 'Kazuki Takahashi / Studio Dice',
           rawNumber: parseRawNumber(matchedSet?.set_code || String(c.id)),
           chronologicalIndex: Number(c.id) || 0,
+          condition: 'NM',
+          language: 'PT',
         });
       });
 
@@ -421,6 +692,8 @@ export async function searchCards(
           artist: c.artist || 'Bandai',
           rawNumber: parseRawNumber(c.id),
           chronologicalIndex: parseRawNumber(c.id),
+          condition: 'NM',
+          language: 'PT',
         };
       });
 
@@ -473,6 +746,8 @@ export async function searchCards(
           artist: 'Copag / Marvel',
           rawNumber: parseRawNumber(c.collectorNumber),
           chronologicalIndex: parseRawNumber(c.collectorNumber),
+          condition: 'NM',
+          language: 'PT',
         };
       });
 
@@ -571,6 +846,8 @@ export async function searchCards(
                 artist: 'Ken Sugimori',
                 rawNumber: parseRawNumber(cardSummary.localId),
                 chronologicalIndex: chronoIndex,
+                condition: 'NM',
+                language: 'PT',
               };
             });
 
@@ -594,9 +871,7 @@ export async function searchCards(
           if (searchRes.ok) {
             const cardsList = await searchRes.json();
             if (Array.isArray(cardsList) && cardsList.length > 0) {
-              // Keep cards that have an image and map all of them without cutoff
-              const validCards = cardsList.filter((c: any) => !!c.image);
-              const sourceList = validCards.length > 0 ? validCards : cardsList;
+              const sourceList = cardsList;
 
               const allResults: ApiCardResult[] = sourceList.map((cardSummary: any) => {
                 const img = cardSummary.image
@@ -619,6 +894,8 @@ export async function searchCards(
                   artist: 'Ken Sugimori',
                   rawNumber: parseRawNumber(cardSummary.localId),
                   chronologicalIndex: chronoIndex,
+                  condition: 'NM',
+                  language: 'PT',
                 };
               });
 

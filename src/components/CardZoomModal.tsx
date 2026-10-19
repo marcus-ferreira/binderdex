@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, Sparkles, User, Edit3, Trash2 } from 'lucide-react';
-import { BinderCard, CARD_CONDITIONS, CARD_LANGUAGES } from '../types/binder';
+import { X, Sparkles, User } from 'lucide-react';
+import { BinderCard, CardFinish, CARD_FINISHES, CARD_CONDITIONS, CARD_LANGUAGES } from '../types/binder';
 
 interface CardZoomModalProps {
   card: BinderCard | null;
@@ -24,7 +24,7 @@ export const CardZoomModal: React.FC<CardZoomModalProps> = ({
   const [rotate, setRotate] = useState({ x: 0, y: 0 });
   const [imageError, setImageError] = useState(false);
   const [imgSrc, setImgSrc] = useState(card?.imageUrl || '');
-  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
+  const [finish, setFinish] = useState<CardFinish>(card?.finish || 'normal');
   const [condition, setCondition] = useState(card?.condition || 'NM');
   const [language, setLanguage] = useState(card?.language || 'PT');
 
@@ -33,10 +33,10 @@ export const CardZoomModal: React.FC<CardZoomModalProps> = ({
     setImageError(false);
     setImgSrc(card?.imageUrl || '');
     setRotate({ x: 0, y: 0 });
-    setIsConfirmingDelete(false);
+    setFinish(card?.finish || 'normal');
     setCondition(card?.condition || 'NM');
     setLanguage(card?.language || 'PT');
-  }, [card?.id, card?.imageUrl, slotIndex]);
+  }, [card?.id, card?.imageUrl, card?.finish, slotIndex]);
 
   if (!card) return null;
 
@@ -63,6 +63,13 @@ export const CardZoomModal: React.FC<CardZoomModalProps> = ({
     }
   };
 
+  const handleFinishChange = (val: CardFinish) => {
+    setFinish(val);
+    if (slotIndex !== null && binderId && onUpdateCardProperty) {
+      onUpdateCardProperty(binderId, slotIndex, { finish: val });
+    }
+  };
+
   const handleConditionChange = (val: string) => {
     setCondition(val);
     if (slotIndex !== null && binderId && onUpdateCardProperty) {
@@ -77,7 +84,17 @@ export const CardZoomModal: React.FC<CardZoomModalProps> = ({
     }
   };
 
-  const isFoil = card.finish === 'foil' || card.finish === 'holo' || card.finish === 'secret';
+  const finishClass =
+    finish === 'foil'
+      ? 'finish-foil'
+      : finish === 'holo'
+      ? 'finish-holo'
+      : finish === 'reverse'
+      ? 'finish-reverse'
+      : finish === 'secret'
+      ? 'finish-secret'
+      : '';
+  const isFoil = finish !== 'normal';
 
   return (
     <div
@@ -105,9 +122,7 @@ export const CardZoomModal: React.FC<CardZoomModalProps> = ({
                 transform: `perspective(1000px) rotateX(${rotate.x}deg) rotateY(${rotate.y}deg)`,
                 transition: 'transform 0.1s ease-out',
               }}
-              className={`relative aspect-[5/7] w-64 max-w-full rounded-xl overflow-hidden shadow-2xl border-2 border-slate-700/80 bg-slate-900 ${
-                isFoil ? 'holo-foil' : ''
-              }`}
+              className={`relative aspect-[5/7] w-64 max-w-full rounded-xl overflow-hidden shadow-2xl border-2 border-slate-700/80 bg-slate-900 ${finishClass}`}
             >
               {Boolean((imgSrc || card.imageUrl)?.trim()) && !imageError ? (
                 <img
@@ -199,9 +214,17 @@ export const CardZoomModal: React.FC<CardZoomModalProps> = ({
                 <span className="text-[10px] text-slate-500 block uppercase font-mono">
                   Acabamento
                 </span>
-                <span className="font-semibold text-slate-200 capitalize">
-                  {card.finish}
-                </span>
+                <select
+                  value={finish}
+                  onChange={(e) => handleFinishChange(e.target.value as CardFinish)}
+                  className="w-full bg-transparent font-semibold text-slate-200 focus:outline-none focus:text-white cursor-pointer"
+                >
+                  {CARD_FINISHES.map((opt) => (
+                    <option key={opt.value} value={opt.value} className="bg-slate-900 text-slate-200">
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="bg-slate-900/80 p-2.5 rounded-lg border border-slate-800">
@@ -251,68 +274,6 @@ export const CardZoomModal: React.FC<CardZoomModalProps> = ({
                 </span>
               </div>
             </div>
-
-            {/* Action buttons to Edit or Delete card from this modal */}
-            {slotIndex !== null && (
-              <div className="pt-2 flex flex-col gap-2 border-t border-slate-800">
-                {isConfirmingDelete ? (
-                  <div className="p-2.5 rounded-lg bg-rose-950/60 border border-rose-800/80 flex flex-col sm:flex-row items-center justify-between gap-2.5 animate-in fade-in duration-150">
-                    <span className="text-xs text-rose-200 font-medium">
-                      Remover carta deste bolso?
-                    </span>
-                    <div className="flex items-center gap-2 w-full sm:w-auto">
-                      <button
-                        type="button"
-                        onClick={() => setIsConfirmingDelete(false)}
-                        className="flex-1 sm:flex-initial px-3 py-1.5 text-xs font-medium text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
-                      >
-                        Cancelar
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (onDeleteCard) {
-                            onDeleteCard(slotIndex);
-                          }
-                          onClose();
-                        }}
-                        className="flex-1 sm:flex-initial px-3 py-1.5 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-500 rounded-lg transition-colors cursor-pointer shadow-sm"
-                      >
-                        Confirmar Remoção
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-
-                    {onChangeCard && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          onClose();
-                          onChangeCard(slotIndex, card);
-                        }}
-                        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-200 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
-                      >
-                        <Edit3 className="w-3.5 h-3.5" />
-                        <span>Trocar Carta</span>
-                      </button>
-                    )}
-
-                    {onDeleteCard && (
-                      <button
-                        type="button"
-                        onClick={() => setIsConfirmingDelete(true)}
-                        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold text-rose-300 hover:text-rose-100 bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/50 rounded-lg transition-colors cursor-pointer"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        <span>Remover Carta</span>
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
           </div>
         </div>
       </div>

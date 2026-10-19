@@ -10,22 +10,28 @@
   }
 }
 
-/* Holographic foil sheen effect */
-.holo-foil {
+/* Holographic and Special Finish Sheen Effects */
+.holo-foil,
+.finish-foil,
+.finish-holo,
+.finish-reverse,
+.finish-secret {
   position: relative;
   overflow: hidden;
 }
 
-.holo-foil::after {
+/* Default / Classic Foil */
+.holo-foil::after,
+.finish-foil::after {
   content: '';
   position: absolute;
   inset: -100%;
   background: linear-gradient(
     115deg,
     transparent 20%,
-    rgba(255, 0, 150, 0.25) 35%,
-    rgba(0, 220, 255, 0.35) 50%,
-    rgba(255, 230, 0, 0.3) 65%,
+    rgba(255, 0, 150, 0.22) 35%,
+    rgba(0, 220, 255, 0.3) 50%,
+    rgba(255, 230, 0, 0.25) 65%,
     transparent 80%
   );
   mix-blend-mode: color-dodge;
@@ -33,6 +39,68 @@
   transition: opacity 0.3s ease;
   pointer-events: none;
   animation: holoShift 6s linear infinite;
+}
+
+/* Holo - High vibrancy rainbow prism sheen */
+.finish-holo::after {
+  content: '';
+  position: absolute;
+  inset: -120%;
+  background: linear-gradient(
+    125deg,
+    transparent 15%,
+    rgba(255, 20, 147, 0.35) 30%,
+    rgba(0, 255, 230, 0.45) 45%,
+    rgba(255, 215, 0, 0.4) 60%,
+    rgba(147, 51, 234, 0.35) 75%,
+    transparent 90%
+  );
+  mix-blend-mode: color-dodge;
+  opacity: 0.85;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  animation: holoShift 4.5s linear infinite;
+}
+
+/* Reverse Holo - Lustrous silver / pearlescent sheen */
+.finish-reverse::after {
+  content: '';
+  position: absolute;
+  inset: -100%;
+  background: linear-gradient(
+    135deg,
+    transparent 25%,
+    rgba(220, 235, 255, 0.35) 45%,
+    rgba(255, 255, 255, 0.5) 50%,
+    rgba(200, 225, 255, 0.35) 55%,
+    transparent 75%
+  );
+  mix-blend-mode: overlay;
+  opacity: 0.7;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  animation: holoShift 7s ease-in-out infinite alternate;
+}
+
+/* Secret Rare - Golden, warm iridescent gleaming sheen */
+.finish-secret::after {
+  content: '';
+  position: absolute;
+  inset: -100%;
+  background: linear-gradient(
+    120deg,
+    transparent 20%,
+    rgba(255, 215, 0, 0.45) 35%,
+    rgba(255, 248, 220, 0.65) 50%,
+    rgba(255, 165, 0, 0.45) 65%,
+    rgba(218, 165, 32, 0.3) 80%,
+    transparent 90%
+  );
+  mix-blend-mode: color-dodge;
+  opacity: 0.9;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  animation: holoShift 5s linear infinite;
 }
 
 @keyframes holoShift {

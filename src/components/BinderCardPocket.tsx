@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Sparkles, Copy } from 'lucide-react';
+import { Plus, Sparkles, Copy, Trash2 } from 'lucide-react';
 import { BinderCard } from '../types/binder';
 
 interface BinderCardPocketProps {
@@ -21,6 +21,7 @@ export const BinderCardPocket: React.FC<BinderCardPocketProps> = ({
   onAddCard,
   onViewCard,
   onDropCard,
+  onDeleteCard,
   onDragStartCard,
   onDragEndCard,
 }) => {
@@ -93,7 +94,17 @@ export const BinderCardPocket: React.FC<BinderCardPocketProps> = ({
     }
   };
 
-  const isFoil = card && (card.finish === 'foil' || card.finish === 'holo' || card.finish === 'secret');
+  const finishClass =
+    card?.finish === 'foil'
+      ? 'finish-foil'
+      : card?.finish === 'holo'
+      ? 'finish-holo'
+      : card?.finish === 'reverse'
+      ? 'finish-reverse'
+      : card?.finish === 'secret'
+      ? 'finish-secret'
+      : '';
+  const isFoil = Boolean(card && card.finish && card.finish !== 'normal');
 
   return (
     <div
@@ -121,10 +132,8 @@ export const BinderCardPocket: React.FC<BinderCardPocketProps> = ({
             onDragStart={handleDragStart}
             onDragEnd={() => onDragEndCard?.()}
             onClick={() => onViewCard(card, slotIndex)}
-            className={`relative w-full h-full flex flex-col cursor-pointer overflow-hidden rounded-[3px] border border-slate-800 bg-slate-900 group hover:ring-2 hover:ring-indigo-500/70 transition-all ${
-              isFoil ? 'holo-foil' : ''
-            }`}
-            title="Clique para ver detalhes, trocar ou excluir carta"
+            className={`relative w-full h-full flex flex-col cursor-pointer overflow-hidden rounded-[3px] border border-slate-800 bg-slate-900 group hover:ring-2 hover:ring-indigo-500/70 transition-all ${finishClass}`}
+            title="Clique para ver detalhes"
           >
             {Boolean((imgSrc || card.imageUrl)?.trim()) && !imageError ? (
               <img
@@ -159,13 +168,35 @@ export const BinderCardPocket: React.FC<BinderCardPocketProps> = ({
               </div>
             )}
 
+            {/* Condition/Language Overlay */}
+            <div className="absolute bottom-1 right-1 z-20 pointer-events-none">
+              <span className="px-1.5 py-0.5 text-[9px] font-mono font-semibold bg-black/80 text-white rounded shadow-sm border border-slate-700/80">
+                {[card.condition || 'NM', card.language || 'PT'].join(' • ')}
+              </span>
+            </div>
+
             {/* Foil indicator */}
             {isFoil && (
               <div className="absolute bottom-1.5 left-1.5 z-20 pointer-events-none">
-                <span className="px-1.5 py-0.5 text-[9px] font-mono bg-amber-500/90 text-black font-extrabold rounded shadow-sm">
-                  FOIL
+                <span className="px-1.5 py-0.5 text-[8px] font-mono uppercase bg-amber-400 text-black font-extrabold rounded shadow-sm">
+                  {card.finish === 'reverse' ? 'REV' : card.finish}
                 </span>
               </div>
+            )}
+
+            {/* Quick delete button on hover (no confirmation needed) */}
+            {onDeleteCard && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDeleteCard(slotIndex);
+                }}
+                className="absolute top-1 left-1 z-30 p-1 rounded-md bg-black/80 hover:bg-rose-600 text-slate-300 hover:text-white border border-slate-700 hover:border-rose-500 opacity-0 group-hover:opacity-100 transition-all duration-150 cursor-pointer shadow-md"
+                title="Excluir carta do bolso"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
             )}
 
             {/* Card slot number mark */}

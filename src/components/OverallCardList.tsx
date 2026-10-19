@@ -9,7 +9,7 @@ import {
   LayoutGrid,
   List as ListIcon,
 } from 'lucide-react';
-import { Binder, BinderCard, CardGame, SUPPORTED_GAMES, CARD_CONDITIONS, CARD_LANGUAGES } from '../types/binder';
+import { Binder, BinderCard, CardGame, SUPPORTED_GAMES, CARD_CONDITIONS, CARD_LANGUAGES, CardFinish, CARD_FINISHES } from '../types/binder';
 
 export interface AggregateCardItem {
   id: string;
@@ -404,6 +404,17 @@ export const OverallCardList: React.FC<OverallCardListProps> = ({
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
               {sortedCards.map((item) => {
                 const badgeStyle = GAME_BADGE_COLORS[item.card.game] || GAME_BADGE_COLORS.pokemon;
+                const finishClass =
+                  item.card.finish === 'foil'
+                    ? 'finish-foil'
+                    : item.card.finish === 'holo'
+                    ? 'finish-holo'
+                    : item.card.finish === 'reverse'
+                    ? 'finish-reverse'
+                    : item.card.finish === 'secret'
+                    ? 'finish-secret'
+                    : '';
+                const isFoil = Boolean(item.card.finish && item.card.finish !== 'normal');
 
                 return (
                   <div
@@ -413,7 +424,7 @@ export const OverallCardList: React.FC<OverallCardListProps> = ({
                     {/* Card Visual / Thumbnail */}
                     <div
                       onClick={() => onViewCard(item.card, item.slotIndex, item.binderId)}
-                      className="aspect-[5/7] rounded-lg overflow-hidden bg-black/60 relative cursor-pointer"
+                      className={`aspect-[5/7] rounded-lg overflow-hidden bg-black/60 relative cursor-pointer ${finishClass}`}
                     >
                       {item.card.imageUrl && item.card.imageUrl.trim() !== '' ? (
                         <img
@@ -427,6 +438,14 @@ export const OverallCardList: React.FC<OverallCardListProps> = ({
                           <span className="text-[9px] font-mono uppercase text-slate-400">{item.card.game}</span>
                           <p className="text-xs font-bold text-white line-clamp-3 leading-tight">{item.card.name}</p>
                           <span className="text-[9px] text-slate-400 truncate">{item.card.setName}</span>
+                        </div>
+                      )}
+
+                      {isFoil && (
+                        <div className="absolute bottom-1 left-1 pointer-events-none">
+                          <span className="px-1.5 py-0.5 text-[8px] font-mono uppercase bg-amber-400 text-black font-extrabold rounded shadow-sm">
+                            {item.card.finish === 'reverse' ? 'REV' : item.card.finish}
+                          </span>
                         </div>
                       )}
                     </div>
@@ -487,13 +506,51 @@ export const OverallCardList: React.FC<OverallCardListProps> = ({
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="border-b border-slate-800 text-[10px] font-mono uppercase text-slate-400 bg-slate-900/60">
-                      <th className="py-3 px-4">Jogo</th>
-                      <th className="py-3 px-4">Carta</th>
-                      <th className="py-3 px-4">Coleção / Nº</th>
+                    <tr className="border-b border-slate-800 text-[10px] font-mono uppercase text-slate-400 bg-slate-900/60 select-none">
+                      <th
+                        className="py-3 px-4 cursor-pointer hover:text-white transition-colors"
+                        onClick={() => setSortBy(sortBy === 'game' ? 'recent' : 'game')}
+                        title="Ordenar por Jogo"
+                      >
+                        <div className="flex items-center gap-1">
+                          <span>Jogo</span>
+                          {sortBy === 'game' && <span className="text-indigo-400">●</span>}
+                        </div>
+                      </th>
+                      <th
+                        className="py-3 px-4 cursor-pointer hover:text-white transition-colors"
+                        onClick={() => setSortBy(sortBy === 'name-asc' ? 'name-desc' : 'name-asc')}
+                        title="Ordenar por Nome (A-Z / Z-A)"
+                      >
+                        <div className="flex items-center gap-1">
+                          <span>Carta</span>
+                          {sortBy === 'name-asc' && <span className="text-indigo-400">↑</span>}
+                          {sortBy === 'name-desc' && <span className="text-indigo-400">↓</span>}
+                        </div>
+                      </th>
+                      <th
+                        className="py-3 px-4 cursor-pointer hover:text-white transition-colors"
+                        onClick={() => setSortBy(sortBy === 'number-asc' ? 'number-desc' : 'number-asc')}
+                        title="Ordenar por Número (Crescente / Decrescente)"
+                      >
+                        <div className="flex items-center gap-1">
+                          <span>Coleção / Nº</span>
+                          {sortBy === 'number-asc' && <span className="text-indigo-400">↑</span>}
+                          {sortBy === 'number-desc' && <span className="text-indigo-400">↓</span>}
+                        </div>
+                      </th>
                       <th className="py-3 px-4">Raridade / Acabamento</th>
                       <th className="py-3 px-4">Conservação / Idioma</th>
-                      <th className="py-3 px-4">Fichário / Local</th>
+                      <th
+                        className="py-3 px-4 cursor-pointer hover:text-white transition-colors"
+                        onClick={() => setSortBy(sortBy === 'binder' ? 'recent' : 'binder')}
+                        title="Ordenar por Fichário"
+                      >
+                        <div className="flex items-center gap-1">
+                          <span>Fichário / Local</span>
+                          {sortBy === 'binder' && <span className="text-indigo-400">●</span>}
+                        </div>
+                      </th>
                       <th className="py-3 px-4 text-right">Ações</th>
                     </tr>
                   </thead>
@@ -522,7 +579,24 @@ export const OverallCardList: React.FC<OverallCardListProps> = ({
                           </td>
                           <td className="py-2.5 px-4 text-slate-300">
                             <div>{item.card.rarity || 'Comum'}</div>
-                            <div className="text-[10px] text-slate-500 capitalize">{item.card.finish}</div>
+                            <select
+                              value={item.card.finish || 'normal'}
+                              onChange={(e) => {
+                                if (onUpdateCardProperty) {
+                                  onUpdateCardProperty(item.binderId, item.slotIndex, {
+                                    finish: e.target.value as CardFinish,
+                                  });
+                                }
+                              }}
+                              className="mt-0.5 px-1.5 py-0.5 text-xs bg-slate-900 border border-slate-700/80 rounded text-slate-200 focus:outline-none focus:border-indigo-500 cursor-pointer"
+                              title="Acabamento da carta"
+                            >
+                              {CARD_FINISHES.map((opt) => (
+                                <option key={opt.value} value={opt.value} className="bg-slate-900 text-slate-200">
+                                  {opt.label}
+                                </option>
+                              ))}
+                            </select>
                           </td>
                           <td className="py-2.5 px-4 text-slate-300 font-mono">
                             <div className="flex items-center gap-1.5">

@@ -20,6 +20,14 @@ export interface SelectOption {
   label: string;
 }
 
+export const CARD_FINISHES: SelectOption[] = [
+  { value: 'normal', label: 'Normal' },
+  { value: 'foil', label: 'Foil' },
+  { value: 'holo', label: 'Holo' },
+  { value: 'reverse', label: 'Reverse Holo' },
+  { value: 'secret', label: 'Secret Rare / Dourada' },
+];
+
 export const CARD_CONDITIONS: SelectOption[] = [
   { value: 'NM', label: 'NM (Near Mint)' },
   { value: 'LP', label: 'LP (Lightly Played)' },

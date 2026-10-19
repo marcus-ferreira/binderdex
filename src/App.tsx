@@ -77,14 +77,14 @@ export default function App() {
           if (remoteBinders.length > 0) {
             setBinders(remoteBinders);
             saveBindersToStorage(remoteBinders);
-            showToast('Dados sincronizados com o Firestore!');
+            showToast('Dados sincronizados com a nuvem!');
           } else {
             // Upload local binders to Firestore if remote is empty
             if (loadedBinders.length > 0) {
               for (const b of loadedBinders) {
                 await saveBinderToFirestore(currentUser.uid, b);
               }
-              showToast('Fichários salvos na nuvem (Firestore)!');
+              showToast('Fichários salvos na nuvem!');
             }
           }
         } catch (err) {
@@ -270,17 +270,16 @@ export default function App() {
     let newTotalPages = activeBinder.totalPages;
     let sheetsAdded = 0;
 
-    // Check if cards exceed current binder capacity
-    if (lastSlot >= currentSlots) {
-      const currentSheets = Math.floor(activeBinder.totalPages / 2);
-      const neededPages = Math.ceil((lastSlot + 1) / 9);
-      const neededSheets = Math.ceil(neededPages / 2);
-      newTotalPages = Math.max(activeBinder.totalPages, neededSheets * 2);
-      sheetsAdded = neededSheets - currentSheets;
+    // Only add cards that fit in current slots
+    const allowedCardsCount = Math.max(0, currentSlots - startSlot);
+    const cardsToAdd = cards.slice(0, allowedCardsCount);
+
+    if (cardsToAdd.length < cards.length) {
+      showToast('O fichário está cheio, apenas algumas cartas foram adicionadas.');
     }
 
     const newCards = { ...activeBinder.cards };
-    cards.forEach((card, idx) => {
+    cardsToAdd.forEach((card, idx) => {
       newCards[startSlot + idx] = {
         ...card,
         condition: card.condition || 'NM',
@@ -297,11 +296,7 @@ export default function App() {
 
     handleUpdateActiveBinder(updatedBinder);
     setCardSearchConfig({ isOpen: false, slotIndex: null });
-    if (sheetsAdded > 0) {
-      showToast(`${cards.length} carta(s) adicionada(s)! ${sheetsAdded} folha(s) adicionada(s) automaticamente.`);
-    } else {
-      showToast(`${cards.length} carta(s) adicionada(s) com sucesso!`);
-    }
+    showToast(`${cardsToAdd.length} carta(s) adicionada(s) com sucesso!`);
   };
 
   // Navigate directly to binder and slot from OverallCardList

@@ -244,11 +244,11 @@ export const BinderSpread: React.FC<BinderSpreadProps> = ({
             <button
               type="button"
               onClick={() => onEditBinderDetails(binder)}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-200 hover:text-white bg-slate-900/90 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 rounded-lg transition-colors cursor-pointer shadow-sm"
-              title="Editar título, capa e quantidade de folhas do fichário"
+              className="flex items-center justify-center p-2 text-slate-300 hover:text-white bg-slate-900/90 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 rounded-lg transition-colors cursor-pointer shadow-sm"
+              title="Editar Fichário"
+              aria-label="Editar Fichário"
             >
-              <Edit3 className="w-3.5 h-3.5 text-indigo-400" />
-              <span>Editar Fichário</span>
+              <Edit3 className="w-4 h-4 text-indigo-400" />
             </button>
 
             {/* Quick Page Jump Selector */}

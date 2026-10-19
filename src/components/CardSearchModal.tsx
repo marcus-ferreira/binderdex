@@ -5,13 +5,11 @@ import {
   Loader2,
   Check,
   ArrowUpDown,
-  ChevronLeft,
-  ChevronRight,
   Sparkles,
   CheckSquare,
   Square,
 } from 'lucide-react';
-import { BinderCard, CardGame, SUPPORTED_GAMES } from '../types/binder';
+import { BinderCard, CardGame, SUPPORTED_GAMES, CardFinish, CARD_FINISHES, CARD_CONDITIONS, CARD_LANGUAGES } from '../types/binder';
 import { searchCards, ApiCardResult, getPokemonSetOptions } from '../services/cardApi';
 
 interface CardSearchModalProps {
@@ -389,9 +387,6 @@ export const CardSearchModal: React.FC<CardSearchModalProps> = ({
   const [sortBy, setSortBy] = useState<SortOption>('recent-first');
   const [dynamicPokemonSets, setDynamicPokemonSets] = useState<string[]>([]);
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const ITEMS_PER_PAGE = 50;
-
   // Dynamically load the latest sets from TCGdex API when Pokémon is selected
   useEffect(() => {
     if (isOpen && game === 'pokemon') {
@@ -410,7 +405,6 @@ export const CardSearchModal: React.FC<CardSearchModalProps> = ({
       const activeGame = initialCard ? initialCard.game : defaultGame;
       setGame(activeGame);
       setSortBy('recent-first');
-      setCurrentPage(1);
       if (initialCard) {
         setNameQuery(initialCard.name);
         setSetQuery('');
@@ -425,6 +419,8 @@ export const CardSearchModal: React.FC<CardSearchModalProps> = ({
             collectorNumber: initialCard.collectorNumber,
             rarity: initialCard.rarity,
             artist: initialCard.artist,
+            condition: initialCard.condition || 'NM',
+            language: initialCard.language || 'PT',
             rawNumber: 0,
           },
         ]);
@@ -471,7 +467,6 @@ export const CardSearchModal: React.FC<CardSearchModalProps> = ({
     setIsLoading(true);
     setErrorMsg('');
     setSelectedCards([]);
-    setCurrentPage(1);
 
     try {
       const cards = await searchCards(game, trimmedName, trimmedSet);
@@ -524,11 +519,35 @@ export const CardSearchModal: React.FC<CardSearchModalProps> = ({
     return 0;
   });
 
-  const totalPages = Math.max(1, Math.ceil(sortedResults.length / ITEMS_PER_PAGE));
-  const paginatedResults = sortedResults.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
-  );
+  // Change finish for a card in results and selectedCards
+  const handleFinishChange = (cardApiId: string, newFinish: CardFinish) => {
+    setResults((prev) =>
+      prev.map((c) => (c.apiId === cardApiId ? { ...c, finish: newFinish } : c))
+    );
+    setSelectedCards((prev) =>
+      prev.map((c) => (c.apiId === cardApiId ? { ...c, finish: newFinish } : c))
+    );
+  };
+
+  // Change condition for a card in results and selectedCards
+  const handleConditionChange = (cardApiId: string, newCondition: string) => {
+    setResults((prev) =>
+      prev.map((c) => (c.apiId === cardApiId ? { ...c, condition: newCondition } : c))
+    );
+    setSelectedCards((prev) =>
+      prev.map((c) => (c.apiId === cardApiId ? { ...c, condition: newCondition } : c))
+    );
+  };
+
+  // Change language for a card in results and selectedCards
+  const handleLanguageChange = (cardApiId: string, newLanguage: string) => {
+    setResults((prev) =>
+      prev.map((c) => (c.apiId === cardApiId ? { ...c, language: newLanguage } : c))
+    );
+    setSelectedCards((prev) =>
+      prev.map((c) => (c.apiId === cardApiId ? { ...c, language: newLanguage } : c))
+    );
+  };
 
   // Toggle individual card selection
   const handleToggleCard = (card: ApiCardResult) => {
@@ -542,19 +561,19 @@ export const CardSearchModal: React.FC<CardSearchModalProps> = ({
     });
   };
 
-  // Check if all cards in current page are selected
-  const isAllPageSelected =
-    paginatedResults.length > 0 &&
-    paginatedResults.every((c) => selectedCards.some((s) => s.apiId === c.apiId));
+  // Check if all cards in search results are selected
+  const isAllSelected =
+    sortedResults.length > 0 &&
+    sortedResults.every((c) => selectedCards.some((s) => s.apiId === c.apiId));
 
-  const handleToggleAllOnPage = () => {
-    if (isAllPageSelected) {
+  const handleToggleAll = () => {
+    if (isAllSelected) {
       setSelectedCards((prev) =>
-        prev.filter((s) => !paginatedResults.some((c) => c.apiId === s.apiId))
+        prev.filter((s) => !sortedResults.some((c) => c.apiId === s.apiId))
       );
     } else {
       setSelectedCards((prev) => {
-        const toAdd = paginatedResults.filter(
+        const toAdd = sortedResults.filter(
           (c) => !prev.some((s) => s.apiId === c.apiId)
         );
         return [...prev, ...toAdd];
@@ -588,11 +607,13 @@ export const CardSearchModal: React.FC<CardSearchModalProps> = ({
         name: c.name,
         game: c.game,
         imageUrl: c.imageUrl,
-        finish: c.finish,
+        finish: c.finish || 'normal',
         setName: c.setName,
         collectorNumber: c.collectorNumber,
         rarity: c.rarity,
         artist: c.artist,
+        condition: c.condition || 'NM',
+        language: c.language || 'PT',
         addedAt: Date.now() + index,
       };
     });
@@ -604,8 +625,8 @@ export const CardSearchModal: React.FC<CardSearchModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
-      <div className="relative w-full max-w-3xl bg-[#131724] border border-slate-700/80 rounded-2xl shadow-2xl overflow-hidden text-slate-200 flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-sm overflow-x-hidden animate-in fade-in duration-150">
+      <div className="relative w-full max-w-[95vw] lg:max-w-6xl bg-[#131724] border border-slate-700/80 rounded-2xl shadow-2xl overflow-hidden text-slate-200 flex flex-col max-h-[92vh] overflow-x-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-[#0f131f] shrink-0">
           <div>
@@ -710,15 +731,19 @@ export const CardSearchModal: React.FC<CardSearchModalProps> = ({
               <div className="flex items-center gap-3 text-xs">
                 <button
                   type="button"
-                  onClick={handleToggleAllOnPage}
+                  onClick={handleToggleAll}
                   className="flex items-center gap-1.5 text-slate-400 hover:text-white transition-colors cursor-pointer"
                 >
-                  {isAllPageSelected ? (
+                  {isAllSelected ? (
                     <CheckSquare className="w-4 h-4 text-indigo-400" />
                   ) : (
                     <Square className="w-4 h-4 text-slate-500" />
                   )}
-                  <span>Selecionar todos da página</span>
+                  <span>
+                    {isAllSelected
+                      ? 'Desmarcar todas'
+                      : `Selecionar todas (${sortedResults.length})`}
+                  </span>
                 </button>
 
                 {selectedCards.length > 0 && (
@@ -750,7 +775,7 @@ export const CardSearchModal: React.FC<CardSearchModalProps> = ({
         </form>
 
         {/* Results Area */}
-        <div className="p-4 sm:p-6 overflow-y-auto flex-1 min-h-[300px]">
+        <div className="p-3 sm:p-5 overflow-y-auto overflow-x-hidden flex-1 min-h-[300px]">
           {isLoading && (
             <div className="flex flex-col items-center justify-center py-16 text-slate-400 gap-3">
               <Loader2 className="w-8 h-8 animate-spin text-indigo-400" />
@@ -772,18 +797,39 @@ export const CardSearchModal: React.FC<CardSearchModalProps> = ({
 
           {!isLoading && results.length > 0 && (
             <div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
-                {paginatedResults.map((card) => {
+              <div className="flex items-center justify-between pb-3 text-xs text-slate-400 border-b border-slate-800/80 mb-3.5">
+                <span>
+                  Mostrando todas as <strong className="text-white">{sortedResults.length}</strong> cartas encontradas
+                </span>
+                {selectedCards.length > 0 && (
+                  <span className="text-indigo-400 font-medium">
+                    {selectedCards.length} selecionada{selectedCards.length > 1 ? 's' : ''}
+                  </span>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-3">
+                {sortedResults.map((card) => {
                   const selectedIndex = selectedCards.findIndex((s) => s.apiId === card.apiId);
                   const isSelected = selectedIndex !== -1;
                   const isFoil = card.finish !== 'normal';
+                  const finishClass =
+                    card.finish === 'foil'
+                      ? 'finish-foil'
+                      : card.finish === 'holo'
+                      ? 'finish-holo'
+                      : card.finish === 'reverse'
+                      ? 'finish-reverse'
+                      : card.finish === 'secret'
+                      ? 'finish-secret'
+                      : '';
                   const targetSlotNumber = isSelected ? effectiveSlot + selectedIndex + 1 : null;
 
                   return (
                     <div
                       key={card.apiId}
                       onClick={() => handleToggleCard(card)}
-                      className={`group relative rounded-xl border p-2 flex flex-col justify-between transition-all cursor-pointer select-none ${
+                      className={`group relative rounded-xl border p-2 flex flex-col justify-between transition-all cursor-pointer select-none min-w-0 ${
                         isSelected
                           ? 'bg-indigo-950/40 border-indigo-400 ring-2 ring-indigo-500/50 shadow-lg shadow-indigo-950/40'
                           : 'bg-slate-900/60 border-slate-800 hover:border-slate-700 hover:bg-slate-900'
@@ -804,7 +850,7 @@ export const CardSearchModal: React.FC<CardSearchModalProps> = ({
                       )}
 
                       {/* Card Image */}
-                      <div className={`aspect-[5/7] rounded-md overflow-hidden bg-black/60 mb-2 relative ${isFoil ? 'holo-foil' : ''}`}>
+                      <div className={`aspect-[5/7] rounded-md overflow-hidden bg-black/60 mb-2 relative ${finishClass}`}>
                         {card.imageUrl && card.imageUrl.trim() !== '' ? (
                           <img
                             src={card.imageUrl}
@@ -822,15 +868,22 @@ export const CardSearchModal: React.FC<CardSearchModalProps> = ({
 
                         {isFoil && (
                           <div className="absolute bottom-1 left-1 pointer-events-none">
-                            <span className="px-1.5 py-0.2 text-[8px] font-mono font-extrabold uppercase bg-amber-500/90 text-black rounded shadow">
-                              {card.finish}
+                            <span className="px-1.5 py-0.5 text-[8px] font-mono font-extrabold uppercase bg-amber-500/90 text-black rounded shadow">
+                              {card.finish === 'reverse' ? 'REV' : card.finish}
                             </span>
                           </div>
                         )}
+
+                        {/* Condition & Language Overlay Badge */}
+                        <div className="absolute bottom-1 right-1 pointer-events-none">
+                          <span className="px-1.5 py-0.5 text-[8px] font-mono font-medium bg-black/80 text-white rounded border border-slate-700/80 shadow">
+                            {[card.condition || 'NM', card.language || 'PT'].join(' • ')}
+                          </span>
+                        </div>
                       </div>
 
                       {/* Info & Slot Target */}
-                      <div className="space-y-0.5">
+                      <div className="space-y-1 min-w-0">
                         <h4 className="text-xs font-bold text-white truncate leading-tight">
                           {card.name}
                         </h4>
@@ -840,6 +893,69 @@ export const CardSearchModal: React.FC<CardSearchModalProps> = ({
                         <div className="flex items-center justify-between text-[10px] text-slate-500 font-mono pt-1 border-t border-slate-800">
                           <span className="truncate max-w-[65%]">{card.rarity}</span>
                           <span>{card.collectorNumber}</span>
+                        </div>
+
+                        {/* Editable Acabamento, Conservação e Idioma (mesmo tamanho e estilo) */}
+                        <div
+                          className="pt-1.5 mt-1 border-t border-slate-800/80 grid grid-cols-3 gap-1.5"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {/* Acabamento */}
+                          <div className="flex flex-col gap-0.5 min-w-0">
+                            <span className="text-[9px] text-slate-400 font-mono uppercase tracking-wider truncate">
+                              Acabamento
+                            </span>
+                            <select
+                              value={card.finish || 'normal'}
+                              onChange={(e) => handleFinishChange(card.apiId, e.target.value as CardFinish)}
+                              className="w-full h-7 bg-slate-950 border border-slate-700/80 rounded px-1 text-[10px] font-medium text-slate-200 hover:border-slate-600 focus:outline-none focus:border-indigo-500 cursor-pointer truncate shadow-xs transition-colors"
+                              title={`Acabamento: ${card.finish || 'normal'}`}
+                            >
+                              {CARD_FINISHES.map((f) => (
+                                <option key={f.value} value={f.value} className="bg-slate-900 text-slate-200">
+                                  {f.label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {/* Estado */}
+                          <div className="flex flex-col gap-0.5 min-w-0">
+                            <span className="text-[9px] text-slate-400 font-mono uppercase tracking-wider truncate">
+                              Estado
+                            </span>
+                            <select
+                              value={card.condition || 'NM'}
+                              onChange={(e) => handleConditionChange(card.apiId, e.target.value)}
+                              className="w-full h-7 bg-slate-950 border border-slate-700/80 rounded px-1 text-[10px] font-medium text-slate-200 hover:border-slate-600 focus:outline-none focus:border-indigo-500 cursor-pointer truncate shadow-xs transition-colors"
+                              title={`Estado: ${card.condition || 'NM'}`}
+                            >
+                              {CARD_CONDITIONS.map((c) => (
+                                <option key={c.value} value={c.value} className="bg-slate-900 text-slate-200">
+                                  {c.value} ({c.label.split('(')[1]?.replace(')', '') || c.value})
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {/* Idioma */}
+                          <div className="flex flex-col gap-0.5 min-w-0">
+                            <span className="text-[9px] text-slate-400 font-mono uppercase tracking-wider truncate">
+                              Idioma
+                            </span>
+                            <select
+                              value={card.language || 'PT'}
+                              onChange={(e) => handleLanguageChange(card.apiId, e.target.value)}
+                              className="w-full h-7 bg-slate-950 border border-slate-700/80 rounded px-1 text-[10px] font-medium text-slate-200 hover:border-slate-600 focus:outline-none focus:border-indigo-500 cursor-pointer truncate shadow-xs transition-colors"
+                              title={`Idioma: ${card.language || 'PT'}`}
+                            >
+                              {CARD_LANGUAGES.map((l) => (
+                                <option key={l.value} value={l.value} className="bg-slate-900 text-slate-200">
+                                  {l.value} ({l.label.split('(')[1]?.replace(')', '') || l.value})
+                                </option>
+                              ))}
+                            </select>
+                          </div>
                         </div>
 
                         {isSelected && (
@@ -857,73 +973,6 @@ export const CardSearchModal: React.FC<CardSearchModalProps> = ({
                   );
                 })}
               </div>
-
-              {/* Pagination controls */}
-              {totalPages > 1 && (
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-3 border-t border-slate-800/80 text-xs text-slate-400">
-                  <div className="text-[11px] text-slate-500">
-                    Mostrando {(currentPage - 1) * ITEMS_PER_PAGE + 1} -{' '}
-                    {Math.min(currentPage * ITEMS_PER_PAGE, sortedResults.length)} de{' '}
-                    {sortedResults.length} cartas
-                  </div>
-
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      type="button"
-                      disabled={currentPage <= 1}
-                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                      className="p-1 rounded-md bg-slate-900 border border-slate-700 hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-slate-900 text-slate-300 hover:text-white transition-colors cursor-pointer disabled:cursor-not-allowed"
-                      title="Página anterior"
-                    >
-                      <ChevronLeft className="w-4 h-4" />
-                    </button>
-
-                    <div className="flex items-center gap-1">
-                      {Array.from({ length: totalPages }, (_, i) => i + 1)
-                        .filter((page) => {
-                          return (
-                            page === 1 ||
-                            page === totalPages ||
-                            Math.abs(page - currentPage) <= 1
-                          );
-                        })
-                        .map((page, idx, arr) => {
-                          const prev = arr[idx - 1];
-                          const showEllipsis = prev && page - prev > 1;
-
-                          return (
-                            <React.Fragment key={page}>
-                              {showEllipsis && (
-                                <span className="px-1 text-slate-600 text-xs">...</span>
-                              )}
-                              <button
-                                type="button"
-                                onClick={() => setCurrentPage(page)}
-                                className={`min-w-[28px] h-7 px-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer ${
-                                  currentPage === page
-                                    ? 'bg-indigo-600 text-white font-bold'
-                                    : 'bg-slate-900 border border-slate-700/80 text-slate-300 hover:bg-slate-800 hover:text-white'
-                                }`}
-                              >
-                                {page}
-                              </button>
-                            </React.Fragment>
-                          );
-                        })}
-                    </div>
-
-                    <button
-                      type="button"
-                      disabled={currentPage >= totalPages}
-                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                      className="p-1 rounded-md bg-slate-900 border border-slate-700 hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-slate-900 text-slate-300 hover:text-white transition-colors cursor-pointer disabled:cursor-not-allowed"
-                      title="Próxima página"
-                    >
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              )}
             </div>
           )}
         </div>
