@@ -8,6 +8,8 @@ import {
   SlidersHorizontal,
   LayoutGrid,
   List as ListIcon,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { Binder, BinderCard, CardGame, SUPPORTED_GAMES, CARD_CONDITIONS, CARD_LANGUAGES, CardFinish, CARD_FINISHES } from '../types/binder';
 
@@ -203,48 +205,37 @@ export const OverallCardList: React.FC<OverallCardListProps> = ({
     return list;
   }, [filteredCards, sortBy]);
 
+  // Pagination (24 cards per page)
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 24;
+
+  // Reset to first page when search, filter, or sorting changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedGame, selectedSet, sortBy]);
+
+  const totalPages = Math.max(1, Math.ceil(sortedCards.length / ITEMS_PER_PAGE));
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [totalPages, currentPage]);
+
+  const paginatedCards = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return sortedCards.slice(start, start + ITEMS_PER_PAGE);
+  }, [sortedCards, currentPage]);
+
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-      {/* Page Title & View Mode Toggle */}
+      {/* Page Title */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-white tracking-tight flex items-center gap-2.5">
             <Layers className="w-6 h-6 text-indigo-400" />
             <span>Coleção Geral</span>
           </h1>
-          <p className="text-xs text-slate-400 mt-1">
-            Todas as cartas armazenadas e catalogadas nos seus fichários virtuais.
-          </p>
-        </div>
-
-        {/* Grid vs List View Mode Toggle */}
-        <div className="flex items-center bg-slate-900 border border-slate-800 rounded-xl p-1">
-          <button
-            type="button"
-            onClick={() => setViewMode('grid')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
-              viewMode === 'grid'
-                ? 'bg-indigo-600 text-white shadow-sm'
-                : 'text-slate-400 hover:text-white'
-            }`}
-            title="Visualização em Grade com imagens"
-          >
-            <LayoutGrid className="w-3.5 h-3.5" />
-            <span>Grade</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setViewMode('list')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
-              viewMode === 'list'
-                ? 'bg-indigo-600 text-white shadow-sm'
-                : 'text-slate-400 hover:text-white'
-            }`}
-            title="Visualização em Lista sem imagens"
-          >
-            <ListIcon className="w-3.5 h-3.5" />
-            <span>Lista</span>
-          </button>
         </div>
       </div>
 
@@ -393,16 +384,54 @@ export const OverallCardList: React.FC<OverallCardListProps> = ({
           )}
         </div>
       ) : (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between text-xs text-slate-400 px-1">
-            <span>
-              Mostrando <strong className="text-white">{sortedCards.length}</strong> carta{sortedCards.length > 1 ? 's' : ''} em fichários
-            </span>
+        <div className="space-y-4">
+          {/* Top Bar above Cards: Count, Page info and Grade/Lista View Toggle */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-400 bg-[#121624] border border-slate-800 rounded-xl px-4 py-2.5">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span>
+                Mostrando <strong className="text-white">{sortedCards.length}</strong> carta{sortedCards.length > 1 ? 's' : ''} em fichários
+              </span>
+              {totalPages > 1 && (
+                <span className="text-slate-500 font-mono text-[11px]">
+                  • Página <strong className="text-indigo-400">{currentPage}</strong> de <strong className="text-slate-300">{totalPages}</strong> (24 por página)
+                </span>
+              )}
+            </div>
+
+            {/* Grid vs List View Mode Toggle - placed directly above table/grid */}
+            <div className="flex items-center bg-slate-900 border border-slate-800 rounded-xl p-1 shrink-0 self-end sm:self-auto">
+              <button
+                type="button"
+                onClick={() => setViewMode('grid')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                  viewMode === 'grid'
+                    ? 'bg-indigo-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+                title="Visualização em Grade com imagens"
+              >
+                <LayoutGrid className="w-3.5 h-3.5" />
+                <span>Grade</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('list')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                  viewMode === 'list'
+                    ? 'bg-indigo-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+                title="Visualização em Lista sem imagens"
+              >
+                <ListIcon className="w-3.5 h-3.5" />
+                <span>Lista</span>
+              </button>
+            </div>
           </div>
 
           {viewMode === 'grid' ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-              {sortedCards.map((item) => {
+              {paginatedCards.map((item) => {
                 const badgeStyle = GAME_BADGE_COLORS[item.card.game] || GAME_BADGE_COLORS.pokemon;
                 const finishClass =
                   item.card.finish === 'foil'
@@ -524,6 +553,7 @@ export const OverallCardList: React.FC<OverallCardListProps> = ({
                       <th className="py-3 px-3">Acabamento</th>
                       <th className="py-3 px-3">Conservação</th>
                       <th className="py-3 px-3">Idioma</th>
+                      <th className="py-3 px-3">Edição</th>
                       <th
                         className="py-3 px-3 cursor-pointer hover:text-white transition-colors"
                         onClick={() => setSortBy(sortBy === 'binder' ? 'recent' : 'binder')}
@@ -538,7 +568,7 @@ export const OverallCardList: React.FC<OverallCardListProps> = ({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/60 text-xs">
-                    {sortedCards.map((item) => {
+                    {paginatedCards.map((item) => {
                       const badgeStyle = GAME_BADGE_COLORS[item.card.game] || GAME_BADGE_COLORS.pokemon;
                       const finishLabel = CARD_FINISHES.find((f) => f.value === item.card.finish)?.label || 'Normal';
                       return (
@@ -622,7 +652,17 @@ export const OverallCardList: React.FC<OverallCardListProps> = ({
                             </span>
                           </td>
 
-                          {/* 9. Fichário / Local */}
+                          {/* 9. Edição / Observação (apenas leitura) */}
+                          <td className="py-2.5 px-3 font-mono whitespace-nowrap">
+                            <span
+                              className="px-2 py-0.5 text-[10px] font-semibold rounded bg-slate-900 border border-slate-700/80 text-slate-200"
+                              title={item.card.edition === 'first_edition' ? '1ª Edição' : 'Ilimitada'}
+                            >
+                              {item.card.edition === 'first_edition' ? '1ª Edição' : 'Ilimitada'}
+                            </span>
+                          </td>
+
+                          {/* 10. Fichário / Local */}
                           <td className="py-2.5 px-3 whitespace-nowrap">
                             <button
                               type="button"
@@ -638,7 +678,7 @@ export const OverallCardList: React.FC<OverallCardListProps> = ({
                             </button>
                           </td>
 
-                          {/* 10. Ações */}
+                          {/* 11. Ações */}
                           <td className="py-2.5 px-3 text-right whitespace-nowrap">
                             <div className="flex items-center justify-end gap-1.5">
                               {onDeleteCard && (
@@ -662,6 +702,74 @@ export const OverallCardList: React.FC<OverallCardListProps> = ({
                     })}
                   </tbody>
                 </table>
+              </div>
+            </div>
+          )}
+
+          {/* Pagination Controls Bar */}
+          {totalPages > 1 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-slate-800/80 px-2 bg-[#121624]/60 p-3 rounded-xl">
+              <div className="text-xs text-slate-400 font-mono">
+                Mostrando {(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, sortedCards.length)} de <strong className="text-white">{sortedCards.length}</strong> cartas
+              </div>
+              <div className="flex items-center gap-1.5 flex-wrap justify-center">
+                <button
+                  type="button"
+                  disabled={currentPage === 1}
+                  onClick={() => {
+                    setCurrentPage((p) => Math.max(1, p - 1));
+                    window.scrollTo({ top: 350, behavior: 'smooth' });
+                  }}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:border-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                  <span>Anterior</span>
+                </button>
+
+                {/* Page Numbers */}
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter((page) => {
+                      return page === 1 || page === totalPages || Math.abs(page - currentPage) <= 2;
+                    })
+                    .map((page, idx, arr) => {
+                      const prevPage = arr[idx - 1];
+                      const hasGap = prevPage && page - prevPage > 1;
+
+                      return (
+                        <React.Fragment key={page}>
+                          {hasGap && <span className="text-slate-600 px-1 text-xs">...</span>}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCurrentPage(page);
+                              window.scrollTo({ top: 350, behavior: 'smooth' });
+                            }}
+                            className={`min-w-8 h-8 rounded-lg text-xs font-semibold flex items-center justify-center transition-all cursor-pointer ${
+                              currentPage === page
+                                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
+                                : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
+                            }`}
+                          >
+                            {page}
+                          </button>
+                        </React.Fragment>
+                      );
+                    })}
+                </div>
+
+                <button
+                  type="button"
+                  disabled={currentPage === totalPages}
+                  onClick={() => {
+                    setCurrentPage((p) => Math.min(totalPages, p + 1));
+                    window.scrollTo({ top: 350, behavior: 'smooth' });
+                  }}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:border-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+                >
+                  <span>Próxima</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
               </div>
             </div>
           )}

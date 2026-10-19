@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { X, Sparkles, User } from 'lucide-react';
-import { BinderCard, CardFinish, CARD_FINISHES, CARD_CONDITIONS, CARD_LANGUAGES } from '../types/binder';
+import React, { useState, useEffect, useMemo } from 'react';
+import { X, Sparkles, Trophy } from 'lucide-react';
+import { Binder, BinderCard, CardFinish, CARD_FINISHES, CARD_CONDITIONS, CARD_LANGUAGES, CARD_EDITIONS } from '../types/binder';
+import { getSingleCollectionProgress } from '../services/collectionProgress';
 
 interface CardZoomModalProps {
   card: BinderCard | null;
   slotIndex: number | null;
   binderId?: string | null;
+  binders?: Binder[];
   onClose: () => void;
   onChangeCard?: (slotIndex: number, card: BinderCard) => void;
   onDeleteCard?: (slotIndex: number) => void;
@@ -16,6 +18,7 @@ export const CardZoomModal: React.FC<CardZoomModalProps> = ({
   card,
   slotIndex,
   binderId,
+  binders = [],
   onClose,
   onChangeCard,
   onDeleteCard,
@@ -26,6 +29,7 @@ export const CardZoomModal: React.FC<CardZoomModalProps> = ({
   const [imgSrc, setImgSrc] = useState(card?.imageUrl || '');
   const [finish, setFinish] = useState<CardFinish>(card?.finish || 'normal');
   const [condition, setCondition] = useState(card?.condition || 'NM');
+  const [edition, setEdition] = useState(card?.edition || 'unlimited');
   const [language, setLanguage] = useState(card?.language || 'PT');
 
   // Reset state whenever a card is opened or changed
@@ -35,8 +39,14 @@ export const CardZoomModal: React.FC<CardZoomModalProps> = ({
     setRotate({ x: 0, y: 0 });
     setFinish(card?.finish || 'normal');
     setCondition(card?.condition || 'NM');
+    setEdition(card?.edition || 'unlimited');
     setLanguage(card?.language || 'PT');
-  }, [card?.id, card?.imageUrl, card?.finish, slotIndex]);
+  }, [card?.id, card?.imageUrl, card?.finish, card?.edition, slotIndex]);
+
+  const collectionStats = useMemo(() => {
+    if (!card?.setName || !binders || binders.length === 0) return null;
+    return getSingleCollectionProgress(binders, card.setName, card.game);
+  }, [card?.setName, card?.game, binders]);
 
   if (!card) return null;
 
@@ -81,6 +91,13 @@ export const CardZoomModal: React.FC<CardZoomModalProps> = ({
     setLanguage(val);
     if (slotIndex !== null && binderId && onUpdateCardProperty) {
       onUpdateCardProperty(binderId, slotIndex, { language: val });
+    }
+  };
+
+  const handleEditionChange = (val: string) => {
+    setEdition(val);
+    if (slotIndex !== null && binderId && onUpdateCardProperty) {
+      onUpdateCardProperty(binderId, slotIndex, { edition: val });
     }
   };
 
@@ -260,20 +277,63 @@ export const CardZoomModal: React.FC<CardZoomModalProps> = ({
                   ))}
                 </select>
               </div>
-            </div>
 
-            {/* Artist / Ilustrador */}
-            <div className="bg-slate-900/80 p-3 rounded-lg border border-slate-800 text-xs flex items-center gap-2">
-              <User className="w-4 h-4 text-indigo-400 shrink-0" />
-              <div>
+              <div className="bg-slate-900/80 p-2.5 rounded-lg border border-slate-800">
+                <span className="text-[10px] text-slate-500 block uppercase font-mono">
+                  Edição
+                </span>
+                <select
+                  value={edition}
+                  onChange={(e) => handleEditionChange(e.target.value)}
+                  className="w-full bg-transparent font-semibold text-slate-200 focus:outline-none focus:text-white cursor-pointer"
+                >
+                  {CARD_EDITIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value} className="bg-slate-900 text-slate-200">
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="bg-slate-900/80 p-2.5 rounded-lg border border-slate-800">
                 <span className="text-[10px] text-slate-500 block uppercase font-mono">
                   Ilustrador
                 </span>
-                <span className="text-slate-200 font-medium">
+                <span className="font-semibold text-slate-200 truncate block" title={card.artist || 'Desconhecido'}>
                   {card.artist || 'Desconhecido'}
                 </span>
               </div>
             </div>
+
+            {/* Collection Progress Stat Card */}
+            {collectionStats && (
+              <div className="bg-slate-900/80 p-3 rounded-lg border border-slate-800 text-xs space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-amber-400 font-semibold">
+                    <Trophy className="w-3.5 h-3.5" />
+                    <span>Progresso da Coleção</span>
+                  </div>
+                  <span className="font-mono text-slate-300 font-bold">
+                    {collectionStats.percentage}%
+                  </span>
+                </div>
+                <div className="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800">
+                  <div
+                    className="bg-gradient-to-r from-indigo-500 to-amber-500 h-full rounded-full transition-all duration-300"
+                    style={{ width: `${collectionStats.percentage}%` }}
+                  />
+                </div>
+                <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono">
+                  <span>
+                    Possui <strong className="text-white">{collectionStats.ownedUniqueCount}</strong> de <strong className="text-white">{collectionStats.totalInSet}</strong> cartas
+                  </span>
+                  <span>
+                    Faltam <strong className="text-amber-400">{collectionStats.missingCount}</strong>
+                  </span>
+                </div>
+              </div>
+            )}
+
           </div>
         </div>
       </div>

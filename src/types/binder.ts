@@ -47,6 +47,11 @@ export const CARD_LANGUAGES: SelectOption[] = [
   { value: 'ZH', label: 'ZH (Chinês)' },
 ];
 
+export const CARD_EDITIONS: SelectOption[] = [
+  { value: 'unlimited', label: 'Ilimitada' },
+  { value: 'first_edition', label: '1ª Edição' },
+];
+
 export interface BinderCard {
   id: string;
   name: string;
@@ -59,6 +64,7 @@ export interface BinderCard {
   artist: string;
   addedAt: number;
   condition?: string;
+  edition?: string;
   notes?: string;
   customPrice?: number;
   language?: string;

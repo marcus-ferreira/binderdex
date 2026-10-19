@@ -1,5 +1,6 @@
 import { CardGame, CardFinish } from '../types/binder';
 import battleScenesData from '../data/battleScenesCards.json';
+import { getClassicSetRarity } from './pokemonRarity';
 
 export interface ApiCardResult {
   apiId: string;
@@ -14,6 +15,7 @@ export interface ApiCardResult {
   rawNumber: number; // For clean numerical sorting
   chronologicalIndex?: number; // Higher number means more recent release/expansion
   condition?: string;
+  edition?: string;
   language?: string;
   origin?: 'api' | 'standalone' | 'binder';
   originalCardId?: string;
@@ -540,7 +542,7 @@ export async function searchCards(
           name: c.name,
           game: 'magic' as CardGame,
           imageUrl: img,
-          finish: cardFinish,
+          finish: 'normal',
           setName: c.set_name,
           collectorNumber: `#${c.collector_number}`,
           rarity,
@@ -548,6 +550,7 @@ export async function searchCards(
           rawNumber: parseRawNumber(c.collector_number),
           chronologicalIndex: chrono,
           condition: 'NM',
+          edition: 'unlimited',
           language: 'PT',
         };
       });
@@ -619,7 +622,7 @@ export async function searchCards(
           name: c.name,
           game: 'yugioh' as CardGame,
           imageUrl: c.card_images?.[0]?.image_url || '',
-          finish: cardFinish,
+          finish: 'normal',
           setName: matchedSet?.set_name || c.archetype || 'Yu-Gi-Oh! TCG',
           collectorNumber: matchedSet?.set_code || `#${c.id}`,
           rarity,
@@ -627,6 +630,7 @@ export async function searchCards(
           rawNumber: parseRawNumber(matchedSet?.set_code || String(c.id)),
           chronologicalIndex: Number(c.id) || 0,
           condition: 'NM',
+          edition: 'unlimited',
           language: 'PT',
         });
       });
@@ -678,14 +682,13 @@ export async function searchCards(
       let list: ApiCardResult[] = data.map((c: any) => {
         const setName = Array.isArray(c.set_name) ? c.set_name[0] : (c.set_name || 'Digimon Booster');
         const rarityCode = (c.rarity || 'C').toUpperCase();
-        const finish = detectFinish(rarityCode, c.name);
 
         return {
           apiId: c.id,
           name: c.name,
           game: 'digimon' as CardGame,
           imageUrl: `https://images.digimoncard.io/images/cards/${c.id}.webp`,
-          finish,
+          finish: 'normal',
           setName,
           collectorNumber: `#${c.id}`,
           rarity: rarityCode === 'SEC' ? 'Secret Rare' : rarityCode === 'SR' ? 'Super Rare' : rarityCode === 'R' ? 'Rare' : rarityCode === 'U' ? 'Uncommon' : rarityCode === 'P' ? 'Promo' : 'Common',
@@ -693,6 +696,7 @@ export async function searchCards(
           rawNumber: parseRawNumber(c.id),
           chronologicalIndex: parseRawNumber(c.id),
           condition: 'NM',
+          edition: 'unlimited',
           language: 'PT',
         };
       });
@@ -733,13 +737,12 @@ export async function searchCards(
       }
 
       const list: ApiCardResult[] = cards.map((c) => {
-        const isFoil = c.rarity?.toLowerCase().includes('personagem') || c.type?.toLowerCase().includes('personagem');
         return {
           apiId: c.id,
           name: c.name,
           game: 'battlescenes' as CardGame,
           imageUrl: c.imageUrl,
-          finish: isFoil ? 'holo' : 'normal',
+          finish: 'normal',
           setName: c.setName,
           collectorNumber: c.collectorNumber,
           rarity: c.rarity || 'Personagem',
@@ -747,6 +750,7 @@ export async function searchCards(
           rawNumber: parseRawNumber(c.collectorNumber),
           chronologicalIndex: parseRawNumber(c.collectorNumber),
           condition: 'NM',
+          edition: 'unlimited',
           language: 'PT',
         };
       });
@@ -833,20 +837,23 @@ export async function searchCards(
                   ? cardSummary.image
                   : `${cardSummary.image}/high.webp`
                 : '';
+              const rawNum = parseRawNumber(cardSummary.localId);
+              const calculatedRarity = getClassicSetRarity(setName, rawNum) || 'Comum';
 
               return {
                 apiId: cardSummary.id,
                 name: cardSummary.name,
                 game: 'pokemon' as CardGame,
                 imageUrl: img,
-                finish: detectFinish('Rare', cardSummary.name),
+                finish: 'normal',
                 setName,
                 collectorNumber: cardSummary.localId ? `#${cardSummary.localId}` : '',
-                rarity: 'Rara',
+                rarity: calculatedRarity,
                 artist: 'Ken Sugimori',
-                rawNumber: parseRawNumber(cardSummary.localId),
+                rawNumber: rawNum,
                 chronologicalIndex: chronoIndex,
                 condition: 'NM',
+                edition: 'unlimited',
                 language: 'PT',
               };
             });
@@ -881,20 +888,23 @@ export async function searchCards(
                   : '';
                 const setName = resolveSetName(cardSummary.id);
                 const chronoIndex = getCardChronologicalIndex(cardSummary.id);
+                const rawNum = parseRawNumber(cardSummary.localId);
+                const calculatedRarity = getClassicSetRarity(setName, rawNum) || 'Comum';
 
                 return {
                   apiId: cardSummary.id,
                   name: cardSummary.name,
                   game: 'pokemon' as CardGame,
                   imageUrl: img,
-                  finish: detectFinish('Rare', cardSummary.name),
+                  finish: 'normal',
                   setName,
                   collectorNumber: cardSummary.localId ? `#${cardSummary.localId}` : '',
-                  rarity: 'Rara',
+                  rarity: calculatedRarity,
                   artist: 'Ken Sugimori',
-                  rawNumber: parseRawNumber(cardSummary.localId),
+                  rawNumber: rawNum,
                   chronologicalIndex: chronoIndex,
                   condition: 'NM',
+                  edition: 'unlimited',
                   language: 'PT',
                 };
               });

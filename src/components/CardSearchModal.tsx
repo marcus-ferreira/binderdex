@@ -9,8 +9,9 @@ import {
   CheckSquare,
   Square,
 } from 'lucide-react';
-import { BinderCard, CardGame, SUPPORTED_GAMES, CardFinish, CARD_FINISHES, CARD_CONDITIONS, CARD_LANGUAGES } from '../types/binder';
+import { BinderCard, CardGame, SUPPORTED_GAMES, CardFinish, CARD_FINISHES, CARD_CONDITIONS, CARD_LANGUAGES, CARD_EDITIONS } from '../types/binder';
 import { searchCards, ApiCardResult, getPokemonSetOptions } from '../services/cardApi';
+import { fetchPokemonCardDetails } from '../services/pokemonRarity';
 
 interface CardSearchModalProps {
   isOpen: boolean;
@@ -549,6 +550,16 @@ export const CardSearchModal: React.FC<CardSearchModalProps> = ({
     );
   };
 
+  // Change edition for a card in results and selectedCards
+  const handleEditionChange = (cardApiId: string, newEdition: string) => {
+    setResults((prev) =>
+      prev.map((c) => (c.apiId === cardApiId ? { ...c, edition: newEdition } : c))
+    );
+    setSelectedCards((prev) =>
+      prev.map((c) => (c.apiId === cardApiId ? { ...c, edition: newEdition } : c))
+    );
+  };
+
   // Toggle individual card selection
   const handleToggleCard = (card: ApiCardResult) => {
     setSelectedCards((prev) => {
@@ -597,12 +608,27 @@ export const CardSearchModal: React.FC<CardSearchModalProps> = ({
       ? Math.max(0, neededSheets - currentSheets)
       : 0;
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (selectedCards.length === 0) return;
 
-    const newBinderCards: BinderCard[] = selectedCards.map((c, index) => {
+    const newBinderCards: BinderCard[] = [];
+    for (let index = 0; index < selectedCards.length; index++) {
+      const c = selectedCards[index];
       const generatedId = `card-${Date.now()}-${index}-${Math.random().toString(36).substring(2, 6)}`;
-      return {
+      let finalRarity = c.rarity;
+      let finalArtist = c.artist;
+
+      if (c.game === 'pokemon') {
+        try {
+          const details = await fetchPokemonCardDetails(c);
+          if (details.rarity) finalRarity = details.rarity;
+          if (details.illustrator) finalArtist = details.illustrator;
+        } catch {
+          // fallback
+        }
+      }
+
+      newBinderCards.push({
         id: generatedId,
         name: c.name,
         game: c.game,
@@ -610,13 +636,14 @@ export const CardSearchModal: React.FC<CardSearchModalProps> = ({
         finish: c.finish || 'normal',
         setName: c.setName,
         collectorNumber: c.collectorNumber,
-        rarity: c.rarity,
-        artist: c.artist,
+        rarity: finalRarity,
+        artist: finalArtist || c.artist,
         condition: c.condition || 'NM',
+        edition: c.edition || 'unlimited',
         language: c.language || 'PT',
         addedAt: Date.now() + index,
-      };
-    });
+      });
+    }
 
     onSelectCards(newBinderCards);
     onClose();
@@ -823,7 +850,6 @@ export const CardSearchModal: React.FC<CardSearchModalProps> = ({
                       : card.finish === 'secret'
                       ? 'finish-secret'
                       : '';
-                  const targetSlotNumber = isSelected ? effectiveSlot + selectedIndex + 1 : null;
 
                   return (
                     <div
@@ -895,7 +921,7 @@ export const CardSearchModal: React.FC<CardSearchModalProps> = ({
                           <span>{card.collectorNumber}</span>
                         </div>
 
-                        {/* Editable Acabamento, Conservação e Idioma em ordem vertical */}
+                        {/* Editable Acabamento, Conservação, Idioma e Edição em ordem vertical */}
                         <div
                           className="pt-2 mt-1.5 border-t border-slate-800/80 space-y-1.5 min-w-0"
                           onClick={(e) => e.stopPropagation()}
@@ -956,18 +982,26 @@ export const CardSearchModal: React.FC<CardSearchModalProps> = ({
                               ))}
                             </select>
                           </div>
-                        </div>
 
-                        {isSelected && (
-                          <div className="pt-1 flex items-center justify-between border-t border-indigo-500/20 mt-1">
-                            <span className="px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-mono text-[9px] font-bold border border-indigo-500/30">
-                              Bolso #{targetSlotNumber}
+                          {/* Edição / Observação */}
+                          <div className="flex items-center justify-between gap-1.5 min-w-0">
+                            <span className="text-[9px] text-slate-400 font-mono uppercase tracking-wider font-semibold shrink-0">
+                              Edição
                             </span>
-                            <span className="text-[9px] text-indigo-400 font-mono">
-                              #{selectedIndex + 1} na ordem
-                            </span>
+                            <select
+                              value={card.edition || 'unlimited'}
+                              onChange={(e) => handleEditionChange(card.apiId, e.target.value)}
+                              className="flex-1 min-w-0 h-6.5 bg-slate-950 border border-slate-700/80 hover:border-slate-500 focus:border-indigo-500 rounded px-1.5 text-[10px] font-medium text-slate-200 focus:outline-none cursor-pointer truncate shadow-xs transition-colors"
+                              title={`Edição: ${card.edition === 'first_edition' ? '1ª Edição' : 'Ilimitada'}`}
+                            >
+                              {CARD_EDITIONS.map((ed) => (
+                                <option key={ed.value} value={ed.value} className="bg-slate-900 text-slate-200">
+                                  {ed.label}
+                                </option>
+                              ))}
+                            </select>
                           </div>
-                        )}
+                        </div>
                       </div>
                     </div>
                   );

@@ -1,8 +1,8 @@
 import React from 'react';
-import { BookOpen, Layers, LogIn, LogOut, User as UserIcon } from 'lucide-react';
+import { BookOpen, Layers, LogIn, LogOut, User as UserIcon, Trophy } from 'lucide-react';
 import { User } from 'firebase/auth';
 
-export type AppNavTab = 'binders' | 'all-cards';
+export type AppNavTab = 'binders' | 'all-cards' | 'progress';
 
 interface HeaderProps {
   onGoHome: () => void;
@@ -81,6 +81,20 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <Layers className="w-3.5 h-3.5" />
             <span>Coleção Geral</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onChangeTab('progress')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+              activeTab === 'progress'
+                ? 'bg-indigo-600 text-white font-semibold shadow-md shadow-indigo-600/20'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+            }`}
+            title="Progresso detalhado de cada coleção"
+          >
+            <Trophy className="w-3.5 h-3.5 text-amber-400" />
+            <span>Progresso</span>
           </button>
         </nav>
 

@@ -59,7 +59,7 @@ export const Footer: React.FC<FooterProps> = ({
             BinderDex &middot; Catalogador de Cartas em Fichários Virtuais
           </p>
           <span className="px-1.5 py-0.5 text-[10px] font-mono bg-slate-900 border border-slate-800 text-slate-400 rounded">
-            v1.0.0
+            v1.2.3
           </span>
         </div>
 

@@ -6,8 +6,11 @@ import { BinderSpread } from './components/BinderSpread';
 import { BinderModal } from './components/BinderModal';
 import { CardSearchModal } from './components/CardSearchModal';
 import { CardZoomModal } from './components/CardZoomModal';
+import { CollectionProgressModal } from './components/CollectionProgressModal';
+import { CollectionProgressView } from './components/CollectionProgressView';
 import { OverallCardList, AggregateCardItem } from './components/OverallCardList';
 import { Binder, BinderCard } from './types/binder';
+import { fixPokemonRegisteredCards } from './services/pokemonRarity';
 import {
   loadBindersFromStorage,
   saveBindersToStorage,
@@ -54,6 +57,9 @@ export default function App() {
     binderId: null,
   });
 
+  // Collection progress modal state
+  const [isProgressModalOpen, setIsProgressModalOpen] = useState(false);
+
   // Floating feedback toast notification
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -69,6 +75,14 @@ export default function App() {
     const loadedBinders = loadBindersFromStorage();
     setBinders(loadedBinders);
 
+    // Automatically check and fix Pokémon rarities for registered cards
+    fixPokemonRegisteredCards(loadedBinders).then(({ updatedBinders, changedCount }) => {
+      if (changedCount > 0) {
+        setBinders(updatedBinders);
+        saveBindersToStorage(updatedBinders);
+      }
+    });
+
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
@@ -78,6 +92,17 @@ export default function App() {
             setBinders(remoteBinders);
             saveBindersToStorage(remoteBinders);
             showToast('Dados sincronizados com a nuvem!');
+
+            // Also check and fix Pokémon rarities for remote binders
+            fixPokemonRegisteredCards(remoteBinders).then(async ({ updatedBinders, changedCount }) => {
+              if (changedCount > 0) {
+                setBinders(updatedBinders);
+                saveBindersToStorage(updatedBinders);
+                for (const b of updatedBinders) {
+                  await saveBinderToFirestore(currentUser.uid, b);
+                }
+              }
+            });
           } else {
             // Upload local binders to Firestore if remote is empty
             if (loadedBinders.length > 0) {
@@ -391,6 +416,11 @@ export default function App() {
             showToast={showToast}
           />
         )}
+
+        {activeTab === 'progress' && (
+          // View 3: Dedicated Collection Progress View
+          <CollectionProgressView binders={binders} />
+        )}
       </main>
 
       {/* Footer with full Backup JSON Export / Import */}
@@ -430,10 +460,18 @@ export default function App() {
         card={zoomConfig.card}
         slotIndex={zoomConfig.slotIndex}
         binderId={zoomConfig.slotIndex !== null ? zoomConfig.binderId : null}
+        binders={binders}
         onClose={() => setZoomConfig({ card: null, slotIndex: null, binderId: null })}
         onChangeCard={zoomConfig.slotIndex !== null ? handleEditCardInSlot : undefined}
         onDeleteCard={zoomConfig.slotIndex !== null ? handleDeleteCardInSlot : undefined}
         onUpdateCardProperty={handleUpdateCardProperty}
+      />
+
+      {/* Collection Progress Modal */}
+      <CollectionProgressModal
+        isOpen={isProgressModalOpen}
+        onClose={() => setIsProgressModalOpen(false)}
+        binders={binders}
       />
 
       {/* Floating Notification Toast */}
