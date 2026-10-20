@@ -236,9 +236,9 @@ export const CollectionProgressModal: React.FC<CollectionProgressModalProps> = (
                   </div>
 
                   <div className="text-left sm:text-right">
-                    <div className="text-sm font-semibold text-white">
-                      Possui <strong className="text-emerald-400">{selectedSetDetail.ownedUniqueCount}</strong> de{' '}
-                      <strong className="text-slate-300">{selectedSetDetail.totalInSet}</strong> cartas
+                    <div className="text-sm font-semibold text-white font-mono">
+                      <strong className="text-emerald-400">{selectedSetDetail.ownedUniqueCount}</strong>/
+                      <strong className="text-slate-300">{selectedSetDetail.totalInSet}</strong> ({selectedSetDetail.percentage}%)
                     </div>
                     <div className="text-xs text-amber-400 font-medium">
                       {selectedSetDetail.missingCount > 0 ? (
@@ -371,10 +371,10 @@ export const CollectionProgressModal: React.FC<CollectionProgressModalProps> = (
                         </div>
 
                         {/* Summary sentence */}
-                        <div className="flex items-center justify-between text-[11px] pt-1 border-t border-slate-800/60">
+                        <div className="flex items-center justify-between text-[11px] pt-1 border-t border-slate-800/60 font-mono">
                           <span className="text-slate-300">
-                            Possui <strong className="text-emerald-400">{item.ownedUniqueCount}</strong> de{' '}
-                            <strong>{item.totalInSet}</strong> cartas
+                            <strong className="text-emerald-400">{item.ownedUniqueCount}</strong>/
+                            <strong>{item.totalInSet}</strong> ({item.percentage}%)
                           </span>
                           <span className="text-amber-400 font-medium">
                             {item.missingCount > 0

@@ -323,13 +323,8 @@ export const CardZoomModal: React.FC<CardZoomModalProps> = ({
                     style={{ width: `${collectionStats.percentage}%` }}
                   />
                 </div>
-                <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono">
-                  <span>
-                    Possui <strong className="text-white">{collectionStats.ownedUniqueCount}</strong> de <strong className="text-white">{collectionStats.totalInSet}</strong> cartas
-                  </span>
-                  <span>
-                    Faltam <strong className="text-amber-400">{collectionStats.missingCount}</strong>
-                  </span>
+                <div className="text-[11px] text-slate-400 font-mono">
+                  <strong className="text-white">{collectionStats.ownedUniqueCount}</strong>/<strong className="text-white">{collectionStats.totalInSet}</strong>
                 </div>
               </div>
             )}

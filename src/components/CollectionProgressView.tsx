@@ -317,9 +317,9 @@ export const CollectionProgressView: React.FC<CollectionProgressViewProps> = ({ 
                       <h3 className="text-base font-bold text-white group-hover:text-indigo-300 transition-colors line-clamp-1">
                         {col.cleanSetName || col.setName}
                       </h3>
-                      <p className="text-xs text-slate-400 mt-0.5">
+                      <p className="text-xs text-slate-400 mt-0.5 font-mono">
                         {col.totalInSet > 0
-                          ? `Possui ${col.ownedUniqueCount} de ${col.totalInSet} cartas do ${col.cleanSetName || col.setName}`
+                          ? `${col.ownedUniqueCount}/${col.totalInSet}`
                           : `${col.ownedUniqueCount} cartas catalogadas`}
                       </p>
 
@@ -336,28 +336,6 @@ export const CollectionProgressView: React.FC<CollectionProgressViewProps> = ({ 
                           />
                         </div>
                       </div>
-                    </div>
-
-                    {/* Bottom Details & Action */}
-                    <div className="pt-3 mt-3 border-t border-slate-800/80 flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-2 text-slate-400 font-mono text-[11px]">
-                        {col.totalInSet > 0 && col.missingCount > 0 ? (
-                          <span>
-                            Faltam <strong className="text-amber-400 font-bold">{col.missingCount}</strong> cartas
-                          </span>
-                        ) : isComplete ? (
-                          <span className="text-emerald-400 font-bold flex items-center gap-1">
-                            <CheckCircle2 className="w-3.5 h-3.5" />
-                            Coleção completa!
-                          </span>
-                        ) : (
-                          <span>{col.totalCardsOwned} cópias nos fichários</span>
-                        )}
-                      </div>
-
-                      <span className="text-indigo-400 group-hover:text-indigo-300 font-semibold text-xs flex items-center gap-1 transition-colors">
-                        Ver cartas →
-                      </span>
                     </div>
                   </div>
                 );
@@ -405,8 +383,8 @@ export const CollectionProgressView: React.FC<CollectionProgressViewProps> = ({ 
                 Progresso de cartas catalogadas nos fichários para esta coleção:
               </span>
               <div className="font-mono text-xs text-slate-300">
-                Possui <strong className="text-emerald-400 font-bold">{selectedCollection.ownedUniqueCount}</strong> de{' '}
-                <strong className="text-white font-bold">{selectedCollection.totalInSet}</strong> cartas (
+                <strong className="text-emerald-400 font-bold">{selectedCollection.ownedUniqueCount}</strong>/
+                <strong className="text-white font-bold">{selectedCollection.totalInSet}</strong> (
                 <strong className="text-indigo-400 font-bold">{selectedCollection.percentage}%</strong>)
               </div>
             </div>
